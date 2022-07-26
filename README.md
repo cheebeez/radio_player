@@ -8,7 +8,10 @@ To use this package, add `radio_player` as a dependency in your `pubspec.yaml` f
 
 ```yaml
 dependencies:
-  radio_player: ^1.0.0
+  radio_player:
+    git:
+      url: https://github.com/cheebeez/radio_player.git
+      ref: main
 ```
 
 By default iOS forbids loading from non-https url. To cancel this restriction edit your .plist and add:
