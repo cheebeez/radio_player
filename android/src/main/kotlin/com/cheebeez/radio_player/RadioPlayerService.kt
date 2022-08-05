@@ -219,6 +219,10 @@ class RadioPlayerService : Service(), Player.Listener {
             override fun onNotificationCancelled(notificationId: Int, dismissedByUser: Boolean) {
                 stopForeground(true)
                 isForegroundService = false
+                // Notify the client if the playback state was changed
+                val stateIntent = Intent(ACTION_STATE_CHANGED)
+                stateIntent.putExtra(ACTION_STATE_CHANGED_EXTRA, false)
+                localBroadcastManager.sendBroadcast(stateIntent)
                 stopSelf()
             }
         }
@@ -231,6 +235,7 @@ class RadioPlayerService : Service(), Player.Listener {
             .setNotificationListener(notificationListener)
             .build().apply {
                 setUsePlayPauseActions(true)
+                setUseStopAction(true)
                 setUseFastForwardAction(false)
                 setUseRewindAction(false)
                 setUsePreviousAction(false)
