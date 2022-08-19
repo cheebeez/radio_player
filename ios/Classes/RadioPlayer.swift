@@ -183,7 +183,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         else { return artwork }
 
         // Make sure the result is found.
-        guard let resultCount = dict["resultCount"], dict["resultCount"] as! Int > 0 else { return artwork }
+        guard let _ = dict["resultCount"], dict["resultCount"] as! Int > 0 else { return artwork }
 
         // Get artwork
         guard let results = dict["results"] as? Array<[String:Any]> else { return artwork }
