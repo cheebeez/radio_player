@@ -44,8 +44,15 @@ class RadioPlayer {
 
   /// Set default image.
   Future<void> setDefaultArtwork(String image) async {
-    final byteData = await rootBundle.load(image);
-    _defaultArtworkChannel.send(byteData);
+    if (image.startsWith('http')) {
+      final byteData = await NetworkAssetBundle(Uri.parse(image)).load(image);
+      _defaultArtworkChannel.send(byteData);
+      _metadataArtworkChannel.send(byteData);
+    } else if (image != null) {
+      final byteData = await rootBundle.load(image);
+      _defaultArtworkChannel.send(byteData);
+      _metadataArtworkChannel.send(byteData);
+    }
   }
 
   /// Helps avoid conflicts with custom metadata.
