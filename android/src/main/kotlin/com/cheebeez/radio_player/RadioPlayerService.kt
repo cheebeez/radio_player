@@ -198,8 +198,7 @@ class RadioPlayerService : Service(), Player.Listener {
             }
             override fun getCurrentLargeIcon(player: Player, callback: BitmapCallback): Bitmap? {
                 metadataArtwork = downloadImage(currentMetadata?.get(2))
-                metadataArtwork?.let { callback?.onBitmap(it) }
-                return defaultArtwork
+                return metadataArtwork ?: defaultArtwork;
             }
             override fun getCurrentContentTitle(player: Player): String {
                 return currentMetadata?.get(0) ?: notificationTitle
