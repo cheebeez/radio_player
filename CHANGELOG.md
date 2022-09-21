@@ -1,6 +1,10 @@
+## 1.1.1
+
+* Rename notification channel.
+
 ## 1.1.0
 
-* Fixed artwork in Android 13 notification bar.
+* Fix artwork in Android 13 notification bar.
 
 ## 1.0.1
 
