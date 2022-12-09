@@ -14,6 +14,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     var metadataArtwork: UIImage?
     var ignoreIcy: Bool = false
     var itunesArtworkParser: Bool = false
+    var interruptionObserverAdded: Bool = false
 
     func setMediaItem(_ streamTitle: String, _ streamUrl: String) {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = [MPMediaItemPropertyTitle: streamTitle, ]
@@ -28,6 +29,12 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
             runInBackground()
         } else {
             player.replaceCurrentItem(with: playerItem)
+        }
+
+        // Set interruption handler.
+        if (!interruptionObserverAdded) {
+            NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
+            interruptionObserverAdded = true
         }
 
         // Set metadata handler.
@@ -56,6 +63,26 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: "metadata"), object: nil, userInfo: ["metadata": metadata])
     }
 
+    @objc
+    func handleInterruption(_ notification: Notification) {
+        guard let info = notification.userInfo,
+            let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+            let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+                return
+        }
+        if type == .began {
+
+        } else if type == .ended {
+            guard let optionsValue = info[AVAudioSessionInterruptionOptionKey] as? UInt else {
+                    return
+            }
+            let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+            if options.contains(.shouldResume) {
+                play()
+            }
+        }
+    }
+
     func setArtwork(_ image: UIImage?) {
         guard let image = image else { return }
 
@@ -67,7 +94,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         if (player.currentItem == nil) { player.replaceCurrentItem(with: playerItem) }
         player.play()
     }
- 
+
     func stop() {
         player.pause()
         player.replaceCurrentItem(with: nil)

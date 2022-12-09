@@ -61,6 +61,7 @@ class RadioPlayerService : Service(), Player.Listener {
     private var isForegroundService = false
     private var currentMetadata: ArrayList<String>? = null
     private var localBinder = LocalBinder()
+    private var playbackState = Player.STATE_IDLE
     private val player: ExoPlayer by lazy {
         ExoPlayer.Builder(this).build()
     }
@@ -239,7 +240,14 @@ class RadioPlayerService : Service(), Player.Listener {
             }
     }
 
-    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, playbackState: Int) {
+    override fun onPlaybackStateChanged(state: Int) {
+        super.onPlaybackStateChanged(state)
+        playbackState = state
+    }
+
+    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+        super.onPlayWhenReadyChanged(playWhenReady, reason)
+
         if (playbackState == Player.STATE_IDLE && playWhenReady == true) {
             player.prepare()
         }
@@ -251,6 +259,8 @@ class RadioPlayerService : Service(), Player.Listener {
     }
 
     override fun onMetadata(md: Metadata) {
+        super.onMetadata(md)
+
         if (ignoreIcy) return
 
         val icyInfo: IcyInfo = md[0] as IcyInfo

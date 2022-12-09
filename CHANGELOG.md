@@ -1,3 +1,7 @@
+## 1.2.0
+
+* iOS resumes playback after a phone call.
+
 ## 1.1.1
 
 * Rename notification channel.
