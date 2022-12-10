@@ -1,6 +1,6 @@
 ## 1.2.0
 
-* iOS resumes playback after a phone call.
+* Fixed auto-resume playback on iOS.
 
 ## 1.1.1
 
