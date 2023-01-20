@@ -1,3 +1,7 @@
+## 1.2.1
+
+* Add a metadata format check in Android.
+
 ## 1.2.0
 
 * Fixed auto-resume playback on iOS.

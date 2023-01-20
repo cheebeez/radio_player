@@ -261,7 +261,7 @@ class RadioPlayerService : Service(), Player.Listener {
     override fun onMetadata(md: Metadata) {
         super.onMetadata(md)
 
-        if (ignoreIcy) return
+        if (ignoreIcy || md[0] !is IcyInfo) return
 
         val icyInfo: IcyInfo = md[0] as IcyInfo
         val title: String = icyInfo.title ?: return
