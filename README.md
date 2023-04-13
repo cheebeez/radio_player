@@ -82,8 +82,8 @@ radioPlayer.metadataStream.listen((value) {
 Image from metadata can be retrieved using `getArtworkImage()`
 
 ## Requirements 
-- iOS: SDK 10.0 (or later)
-- Android: API Level 23 (or later)
+- iOS: SDK 10.0 or later
+- Android: API Level 23 or later
 
 ## Contributing
 
