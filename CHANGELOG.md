@@ -1,5 +1,9 @@
 ## 1.2.1
 
+* Updated dependencies.
+
+## 1.2.1
+
 * Add a metadata format check in Android.
 
 ## 1.2.0
