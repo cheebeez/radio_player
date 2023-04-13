@@ -1,6 +1,6 @@
 ## 1.3.0
 
-* Add a support URL with setDefaultArtwork
+* Add URL support to setDefaultArtwork
 
 ## 1.2.2
 
