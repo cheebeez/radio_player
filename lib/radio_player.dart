@@ -44,7 +44,10 @@ class RadioPlayer {
 
   /// Set default image.
   Future<void> setDefaultArtwork(String image) async {
-    final byteData = await rootBundle.load(image);
+    final byteData = image.startsWith('http')
+        ? await NetworkAssetBundle(Uri.parse(image)).load(image)
+        : await rootBundle.load(image);
+
     _defaultArtworkChannel.send(byteData);
   }
 

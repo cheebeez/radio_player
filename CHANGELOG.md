@@ -1,3 +1,7 @@
+## 1.3.0
+
+* Add a support URL with setDefaultArtwork
+
 ## 1.2.2
 
 * Updated dependencies.
