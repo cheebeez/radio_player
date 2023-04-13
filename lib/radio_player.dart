@@ -42,7 +42,7 @@ class RadioPlayer {
     await _methodChannel.invokeMethod('pause');
   }
 
-  /// Set default image.
+  /// Set the default image in the notification panel
   Future<void> setDefaultArtwork(String image) async {
     final byteData = image.startsWith('http')
         ? await NetworkAssetBundle(Uri.parse(image)).load(image)
