@@ -93,6 +93,22 @@ class RadioPlayerService : Service(), Player.Listener {
         android.os.Process.killProcess(android.os.Process.myPid());
     }
 
+    fun play() {
+        // Swiping the music player on the notification panel removes the media item.
+        if (player.getMediaItemCount() == 0) player.addMediaItems(mediaItems)
+
+        player.playWhenReady = true
+    }
+
+    fun stop() {
+        player.playWhenReady = false
+        player.stop()
+    }
+
+    fun pause() {
+        player.playWhenReady = false
+    }
+
     fun setMediaItem(streamTitle: String, streamUrl: String) {
         mediaItems = runBlocking { 
                 GlobalScope.async { 
@@ -112,38 +128,29 @@ class RadioPlayerService : Service(), Player.Listener {
         player.addMediaItems(mediaItems)
     }
 
+    /** Updates the player's metadata. */
     fun setMetadata(metadata: ArrayList<String>) { 
         // Parse artwork from iTunes.
         if (itunesArtworkParser && metadata[2].isEmpty())
            metadata[2] = parseArtworkFromItunes(metadata[0], metadata[1])
 
+        // Download artwork.
+        //metadataArtwork = downloadImage(currentMetadata?.get(2))
+
+        // Update the notification panel.
         currentMetadata = metadata
         playerNotificationManager?.invalidate()
 
+        // Send the metadata to the Flutter side.
         val metadataIntent = Intent(ACTION_NEW_METADATA)
         metadataIntent.putStringArrayListExtra(ACTION_NEW_METADATA_EXTRA, currentMetadata)
         localBroadcastManager.sendBroadcast(metadataIntent)
     }
 
+    /** Sets the default artwork to display in the notification panel. */
     fun setDefaultArtwork(image: Bitmap) {
         defaultArtwork = image
         playerNotificationManager?.invalidate()
-    }
-
-    fun play() {
-        // Swiping the music player on the notification panel removes the media item.
-        if (player.getMediaItemCount() == 0) player.addMediaItems(mediaItems)
-
-        player.playWhenReady = true
-    }
-
-    fun stop() {
-        player.playWhenReady = false
-        player.stop()
-    }
-
-    fun pause() {
-        player.playWhenReady = false
     }
 
     /** Extract URLs from user link. */
@@ -240,11 +247,7 @@ class RadioPlayerService : Service(), Player.Listener {
             }
     }
 
-    override fun onPlaybackStateChanged(state: Int) {
-        super.onPlaybackStateChanged(state)
-        playbackState = state
-    }
-
+    /** Triggers on play or pause. */
     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
         super.onPlayWhenReadyChanged(playWhenReady, reason)
 
@@ -252,12 +255,19 @@ class RadioPlayerService : Service(), Player.Listener {
             player.prepare()
         }
 
-        // Notify the client if the playback state was changed
+        // Notify the client.
         val stateIntent = Intent(ACTION_STATE_CHANGED)
         stateIntent.putExtra(ACTION_STATE_CHANGED_EXTRA, playWhenReady)
         localBroadcastManager.sendBroadcast(stateIntent)
     }
 
+    /** Triggers when player state changes. */
+    override fun onPlaybackStateChanged(state: Int) {
+        super.onPlaybackStateChanged(state)
+        playbackState = state
+    }
+
+    /** Triggers when metadata comes from the stream. */
     override fun onMetadata(md: Metadata) {
         super.onMetadata(md)
 
@@ -275,6 +285,7 @@ class RadioPlayerService : Service(), Player.Listener {
         setMetadata(ArrayList(metadata))
     }
 
+    /** Downloads an image from url and returns a Bitmap. */
     fun downloadImage(value: String?): Bitmap? {
         if (value == null) return null
         var bitmap: Bitmap? = null
@@ -293,6 +304,7 @@ class RadioPlayerService : Service(), Player.Listener {
         return bitmap
     }
 
+    /** Searches for an artwork by track name in iTunes. */
     fun parseArtworkFromItunes(artist: String, track: String): String {
         var artwork: String = ""
 
