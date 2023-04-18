@@ -59,7 +59,7 @@ class RadioPlayerService : Service(), Player.Listener {
     private var mediaSession: MediaSessionCompat? = null
     private var notificationTitle = ""
     private var isForegroundService = false
-    private var currentMetadata: ArrayList<String>? = null
+    private var metadata: ArrayList<String>? = null
     private var localBinder = LocalBinder()
     private var playbackState = Player.STATE_IDLE
     private val player: ExoPlayer by lazy {
@@ -109,6 +109,7 @@ class RadioPlayerService : Service(), Player.Listener {
         player.playWhenReady = false
     }
 
+    /** Initializing the player with a new data. */
     fun setMediaItem(streamTitle: String, streamUrl: String) {
         mediaItems = runBlocking { 
                 GlobalScope.async { 
@@ -116,7 +117,7 @@ class RadioPlayerService : Service(), Player.Listener {
                 }.await() 
             }
 
-        currentMetadata = null
+        metadata = null
         defaultArtwork = null
         metadataArtwork = null
         notificationTitle = streamTitle
@@ -129,21 +130,22 @@ class RadioPlayerService : Service(), Player.Listener {
     }
 
     /** Updates the player's metadata. */
-    fun setMetadata(metadata: ArrayList<String>) { 
+    fun setMetadata(newMetadata: ArrayList<String>) {
+        metadata = newMetadata
+
         // Parse artwork from iTunes.
-        if (itunesArtworkParser && metadata[2].isEmpty())
-           metadata[2] = parseArtworkFromItunes(metadata[0], metadata[1])
+        if (itunesArtworkParser && metadata!![2].isEmpty())
+           metadata!![2] = parseArtworkFromItunes(metadata!![0], metadata!![1])
 
         // Download artwork.
-        //metadataArtwork = downloadImage(currentMetadata?.get(2))
+        //metadataArtwork = downloadImage(metadata?.get(2))
 
         // Update the notification panel.
-        currentMetadata = metadata
         playerNotificationManager?.invalidate()
 
         // Send the metadata to the Flutter side.
         val metadataIntent = Intent(ACTION_NEW_METADATA)
-        metadataIntent.putStringArrayListExtra(ACTION_NEW_METADATA_EXTRA, currentMetadata)
+        metadataIntent.putStringArrayListExtra(ACTION_NEW_METADATA_EXTRA, metadata)
         localBroadcastManager.sendBroadcast(metadataIntent)
     }
 
@@ -197,7 +199,7 @@ class RadioPlayerService : Service(), Player.Listener {
 
         player.setAudioAttributes(audioAttributes, true);
 
-        // Setup notification manager
+        // Setup notification manager.
         val mediaDescriptionAdapter = object : MediaDescriptionAdapter {
             override fun createCurrentContentIntent(player: Player): PendingIntent? {
                 val notificationIntent = Intent()
@@ -205,14 +207,14 @@ class RadioPlayerService : Service(), Player.Listener {
                 return PendingIntent.getActivity(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             }
             override fun getCurrentLargeIcon(player: Player, callback: BitmapCallback): Bitmap? {
-                metadataArtwork = downloadImage(currentMetadata?.get(2))
+                metadataArtwork = downloadImage(metadata?.get(2))
                 return metadataArtwork ?: defaultArtwork;
             }
             override fun getCurrentContentTitle(player: Player): String {
-                return currentMetadata?.get(0) ?: notificationTitle
+                return metadata?.get(0) ?: notificationTitle
             }
             override fun getCurrentContentText(player: Player): String? {
-                return currentMetadata?.get(1) ?: null
+                return metadata?.get(1) ?: null
             }
         }
 
@@ -268,21 +270,21 @@ class RadioPlayerService : Service(), Player.Listener {
     }
 
     /** Triggers when metadata comes from the stream. */
-    override fun onMetadata(md: Metadata) {
-        super.onMetadata(md)
+    override fun onMetadata(rawMetadata: Metadata) {
+        super.onMetadata(rawMetadata)
 
-        if (ignoreIcy || md[0] !is IcyInfo) return
+        if (ignoreIcy || rawMetadata[0] !is IcyInfo) return
 
-        val icyInfo: IcyInfo = md[0] as IcyInfo
+        val icyInfo: IcyInfo = rawMetadata[0] as IcyInfo
         val title: String = icyInfo.title ?: return
         if (title.length == 0) return
         val cover: String = icyInfo.url ?: ""
 
-        var metadata: MutableList<String> = title.split(" - ").toMutableList()
-        if (metadata.lastIndex == 0) metadata.add("")
-        metadata.add(cover)
+        var newMetadata: MutableList<String> = title.split(" - ").toMutableList()
+        if (newMetadata.lastIndex == 0) newMetadata.add("")
+        newMetadata.add(cover)
 
-        setMetadata(ArrayList(metadata))
+        setMetadata(ArrayList(newMetadata))
     }
 
     /** Downloads an image from url and returns a Bitmap. */
