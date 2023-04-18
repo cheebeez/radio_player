@@ -142,6 +142,7 @@ class RadioPlayerService : Service(), Player.Listener {
         metadataArtwork = downloadImage(metadata?.get(2))
 
         // Update metadata on the notification panel.
+        // playerNotificationManager?.invalidate()
         val mdc = MediaMetadataCompat.Builder()
             .putString(MediaMetadataCompat.METADATA_KEY_TITLE, metadata?.get(1) ?: "")
             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, metadata?.get(0) ?: notificationTitle)
@@ -192,13 +193,13 @@ class RadioPlayerService : Service(), Player.Listener {
                 return PendingIntent.getActivity(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             }
             override fun getCurrentLargeIcon(player: Player, callback: BitmapCallback): Bitmap? {
-                return defaultArtwork;
+                return metadataArtwork ?: defaultArtwork;
             }
             override fun getCurrentContentTitle(player: Player): String {
-                return notificationTitle;
+                return metadata?.get(0) ?: notificationTitle
             }
             override fun getCurrentContentText(player: Player): String? {
-                return null
+                return metadata?.get(1)
             }
         }
 

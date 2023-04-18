@@ -1,3 +1,7 @@
+## 1.4.1
+
+* Fix metadata on some old Android.
+
 ## 1.4.0
 
 * Fix the metadata on the Samsung devices lock screen.
