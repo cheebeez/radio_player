@@ -1,10 +1,10 @@
 ## 1.4.0
 
-* Fix metadata on lock screen
+* Fix the metadata on the Samsung devices lock screen.
 
 ## 1.3.0
 
-* Add URL support to setDefaultArtwork
+* Add URL support to setDefaultArtwork.
 
 ## 1.2.2
 
