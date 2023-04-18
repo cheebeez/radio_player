@@ -1,3 +1,7 @@
+## 1.4.0
+
+* Fix metadata on lock screen
+
 ## 1.3.0
 
 * Add URL support to setDefaultArtwork

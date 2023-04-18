@@ -14,6 +14,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.MediaMetadataCompat
 import android.app.Service
 import android.app.PendingIntent
 import android.content.Intent
@@ -140,8 +141,15 @@ class RadioPlayerService : Service(), Player.Listener {
         // Download artwork.
         metadataArtwork = downloadImage(metadata?.get(2))
 
-        // Update the notification panel.
-        playerNotificationManager?.invalidate()
+        // Update metadata on the notification panel.
+        val mdc = MediaMetadataCompat.Builder()
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, metadata?.get(1) ?: "")
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, metadata?.get(0) ?: notificationTitle)
+            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, metadata?.get(1) ?: "")
+            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, metadata?.get(0) ?: notificationTitle)
+            .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, metadataArtwork ?: defaultArtwork)
+            .build()
+        mediaSession?.setMetadata(mdc)
 
         // Send the metadata to the Flutter side.
         val metadataIntent = Intent(ACTION_NEW_METADATA)
@@ -153,29 +161,6 @@ class RadioPlayerService : Service(), Player.Listener {
     fun setDefaultArtwork(image: Bitmap) {
         defaultArtwork = image
         playerNotificationManager?.invalidate()
-    }
-
-    /** Extract URLs from user link. */
-    private fun parseUrls(url: String): List<String> {
-        var urls: List<String> = emptyList()
-
-        when (url.substringAfterLast(".")) {
-            "pls" -> {
-                 urls = URL(url).readText().lines().filter { 
-                    it.contains("=http") }.map {
-                        it.substringAfter("=")
-                    }
-            }
-            "m3u" -> {
-                val content = URL(url).readText().trim()
-                 urls = listOf<String>(content)
-            }
-            else -> {
-                urls = listOf<String>(url)
-            }
-        }
-
-        return urls
     }
 
     /** Creates a notification manager for background playback. */
@@ -207,13 +192,13 @@ class RadioPlayerService : Service(), Player.Listener {
                 return PendingIntent.getActivity(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             }
             override fun getCurrentLargeIcon(player: Player, callback: BitmapCallback): Bitmap? {
-                return metadataArtwork ?: defaultArtwork;
+                return defaultArtwork;
             }
             override fun getCurrentContentTitle(player: Player): String {
-                return metadata?.get(0) ?: notificationTitle
+                return notificationTitle;
             }
             override fun getCurrentContentText(player: Player): String? {
-                return metadata?.get(1)
+                return null
             }
         }
 
@@ -234,7 +219,6 @@ class RadioPlayerService : Service(), Player.Listener {
         playerNotificationManager = PlayerNotificationManager.Builder(
             this, NOTIFICATION_ID, NOTIFICATION_CHANNEL_ID)
             .setChannelNameResourceId(R.string.channel_name)
-            //.setChannelDescriptionResourceId(R.string.notification_Channel_Description)
             .setMediaDescriptionAdapter(mediaDescriptionAdapter)
             .setNotificationListener(notificationListener)
             .build().apply {
@@ -329,5 +313,28 @@ class RadioPlayerService : Service(), Player.Listener {
         }
 
         return artwork
+    }
+
+    /** Extract URLs from user link. */
+    private fun parseUrls(url: String): List<String> {
+        var urls: List<String> = emptyList()
+
+        when (url.substringAfterLast(".")) {
+            "pls" -> {
+                 urls = URL(url).readText().lines().filter { 
+                    it.contains("=http") }.map {
+                        it.substringAfter("=")
+                    }
+            }
+            "m3u" -> {
+                val content = URL(url).readText().trim()
+                 urls = listOf<String>(content)
+            }
+            else -> {
+                urls = listOf<String>(url)
+            }
+        }
+
+        return urls
     }
 }
