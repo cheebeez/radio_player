@@ -138,7 +138,7 @@ class RadioPlayerService : Service(), Player.Listener {
            metadata!![2] = parseArtworkFromItunes(metadata!![0], metadata!![1])
 
         // Download artwork.
-        //metadataArtwork = downloadImage(metadata?.get(2))
+        metadataArtwork = downloadImage(metadata?.get(2))
 
         // Update the notification panel.
         playerNotificationManager?.invalidate()
@@ -207,14 +207,13 @@ class RadioPlayerService : Service(), Player.Listener {
                 return PendingIntent.getActivity(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             }
             override fun getCurrentLargeIcon(player: Player, callback: BitmapCallback): Bitmap? {
-                metadataArtwork = downloadImage(metadata?.get(2))
                 return metadataArtwork ?: defaultArtwork;
             }
             override fun getCurrentContentTitle(player: Player): String {
                 return metadata?.get(0) ?: notificationTitle
             }
             override fun getCurrentContentText(player: Player): String? {
-                return metadata?.get(1) ?: null
+                return metadata?.get(1)
             }
         }
 
