@@ -12,11 +12,14 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     private var playerItem: AVPlayerItem!
     var defaultArtwork: UIImage?
     var metadataArtwork: UIImage?
+    var streamTitle: String!
+    var streamUrl: String!
     var ignoreIcy: Bool = false
+    var failedToPlay: Bool = false
     var itunesArtworkParser: Bool = false
     var interruptionObserverAdded: Bool = false
 
-    func setMediaItem(_ streamTitle: String, _ streamUrl: String) {
+    func setMediaItem() {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = [MPMediaItemPropertyTitle: streamTitle, ]
         defaultArtwork = nil
         metadataArtwork = nil
@@ -33,6 +36,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
 
         // Set interruption handler.
         if (!interruptionObserverAdded) {
+            NotificationCenter.default.addObserver(self, selector: #selector(playerItemFailedToPlay), name: NSNotification.Name.AVPlayerItemFailedToPlayToEndTime, object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
             interruptionObserverAdded = true
         }
@@ -83,6 +87,14 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         }
     }
 
+    @objc
+    func playerItemFailedToPlay(_ notification: Notification) {
+        failedToPlay = true
+
+        let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
+        print(error)
+    }
+
     func setArtwork(_ image: UIImage?) {
         guard let image = image else { return }
 
@@ -91,7 +103,13 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     }
 
     func play() {
-        if (player.currentItem == nil) { player.replaceCurrentItem(with: playerItem) }
+        if failedToPlay == true { 
+            setMediaItem()
+            failedToPlay = false
+        } else if player.currentItem == nil { 
+            player.replaceCurrentItem(with: playerItem) 
+        }
+
         player.play()
     }
 
