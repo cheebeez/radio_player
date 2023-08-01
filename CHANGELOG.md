@@ -1,3 +1,7 @@
+## 1.4.2
+
+* Fix player behavior after disconnect on iOS.
+
 ## 1.4.1
 
 * Fix metadata on some old Androids.

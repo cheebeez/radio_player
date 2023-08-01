@@ -15,7 +15,6 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     var streamTitle: String!
     var streamUrl: String!
     var ignoreIcy: Bool = false
-    var failedToPlay: Bool = false
     var itunesArtworkParser: Bool = false
     var interruptionObserverAdded: Bool = false
 
@@ -28,6 +27,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         if (player == nil) {
             // Create an AVPlayer.
             player = AVPlayer(playerItem: playerItem)
+            player.automaticallyWaitsToMinimizeStalling = true
             player.addObserver(self, forKeyPath: #keyPath(AVPlayer.timeControlStatus), options: [.new], context: nil)
             runInBackground()
         } else {
@@ -89,7 +89,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
 
     /// TODO: Attempt to reconnect when disconnecting.
     @objc func playerItemFailedToPlay(_ notification: Notification) {
-        failedToPlay = true
+
     }
 
     func setArtwork(_ image: UIImage?) {
@@ -100,12 +100,11 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     }
 
     func play() {
-        if failedToPlay == true { 
-            setMediaItem()
-            failedToPlay = false
-        } else if player.currentItem == nil { 
+        if player.currentItem == nil {
             player.replaceCurrentItem(with: playerItem) 
-        }
+        } else if player.currentItem?.isPlaybackBufferEmpty == true || player.currentItem?.status == .failed {
+            setMediaItem()
+        } 
 
         player.play()
     }
