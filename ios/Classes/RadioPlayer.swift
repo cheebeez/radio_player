@@ -67,8 +67,8 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: "metadata"), object: nil, userInfo: ["metadata": metadata])
     }
 
-    @objc
-    func handleInterruption(_ notification: Notification) {
+    /// Resume playback after phone call.
+    @objc func handleInterruption(_ notification: Notification) {
         guard let info = notification.userInfo,
             let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
             let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
@@ -87,12 +87,9 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         }
     }
 
-    @objc
-    func playerItemFailedToPlay(_ notification: Notification) {
+    /// TODO: Attempt to reconnect when disconnecting.
+    @objc func playerItemFailedToPlay(_ notification: Notification) {
         failedToPlay = true
-
-        let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
-        print(error)
     }
 
     func setArtwork(_ image: UIImage?) {
