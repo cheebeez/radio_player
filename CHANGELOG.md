@@ -1,3 +1,9 @@
+## 1.5.0
+
+* Updated Android target SDK to 34.
+* Updated ExoPlayer.
+* Updated example.
+
 ## 1.4.2
 
 * Fix player behavior after disconnect on iOS.
