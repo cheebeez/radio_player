@@ -3,11 +3,16 @@
 
     <!--  Permissions for the plugin  -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--  Services for the plugin  -->
     <application android:usesCleartextTraffic="true">
-        <service android:name=".RadioPlayerService"/>
+        <service
+          android:name=".RadioPlayerService"
+          android:foregroundServiceType="mediaPlayback"
+          android:exported="false">
+        </service>
         <receiver android:name="androidx.media.session.MediaButtonReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
