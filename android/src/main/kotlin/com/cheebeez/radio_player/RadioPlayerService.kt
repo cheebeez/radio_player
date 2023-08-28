@@ -1,7 +1,7 @@
 /*
  *  RadioPlayerService.kt
  *
- *  Created by Ilya Chirkunov <xc@yar.net> on 30.12.2020.
+ *  Created by Ilia Chirkunov <xc@yar.net> on 30.12.2020.
  */
 
 package com.cheebeez.radio_player
