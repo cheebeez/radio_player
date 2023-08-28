@@ -1,7 +1,7 @@
 /*
  *  radio_player.dart
  *
- *  Created by Ilya Chirkunov <xc@yar.net> on 28.12.2020.
+ *  Created by Ilia Chirkunov <xc@yar.net> on 28.12.2020.
  */
 
 import 'dart:async';
