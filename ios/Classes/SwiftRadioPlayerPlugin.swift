@@ -1,7 +1,7 @@
 /*
  *  SwiftRadioPlayerPlugin.swift
  *
- *  Created by Ilya Chirkunov <xc@yar.net> on 10.01.2021.
+ *  Created by Ilia Chirkunov <xc@yar.net> on 10.01.2021.
  */
 
 import Flutter
