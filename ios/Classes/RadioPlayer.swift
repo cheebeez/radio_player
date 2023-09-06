@@ -136,7 +136,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         // Pause button.
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { [weak self] (event) -> MPRemoteCommandHandlerStatus in
-            self?.pause()
+            self?.stop()
             return .success
         }
     }

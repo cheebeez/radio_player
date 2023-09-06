@@ -245,6 +245,10 @@ class RadioPlayerService : Service(), Player.Listener {
         val stateIntent = Intent(ACTION_STATE_CHANGED)
         stateIntent.putExtra(ACTION_STATE_CHANGED_EXTRA, playWhenReady)
         localBroadcastManager.sendBroadcast(stateIntent)
+
+        if (!playWhenReady && playbackState == Player.STATE_READY) {
+            stop()
+        }
     }
 
     /** Triggers when player state changes. */
