@@ -58,6 +58,15 @@ public class SwiftRadioPlayerPlugin: NSObject, FlutterPlugin {
                 player.itunesArtworkParser = enable
             case "ignore_icy":
                 player.ignoreIcy = true
+            case "addToControlCenter":
+                player.addToControlCenter()
+            case "removeFromControlCenter":
+                player.removeFromControlCenter()
+            case "stopPlayer":
+                let seconds = call.arguments as! Double
+                player.stopPlayer(after: seconds)
+            case "cancelTimer":
+                player.cancelTimer()
             default:
                 result(FlutterMethodNotImplemented)
         }

@@ -42,6 +42,26 @@ class RadioPlayer {
     await _methodChannel.invokeMethod('pause');
   }
 
+  /// Added media info to player in control center and enable buttons on it
+  Future<void> addToControlCenter() async {
+    await _methodChannel.invokeMethod('addToControlCenter');
+  }
+
+  /// Remove media info from player in control center and disable any interaction with it
+  Future<void> removeFromControlCenter() async {
+    await _methodChannel.invokeMethod('removeFromControlCenter');
+  }
+
+  /// Stop playing after specified number of seconds.
+  Future<void> stop(Double seconds) async {
+    await _methodChannel.invokeMethod('stopPlayer', seconds);
+  }
+
+  /// Cancel schedulled timer
+  Future<void> cancelTimer() async {
+    await _methodChannel.invokeMethod('cancelTimer');
+  }
+
   /// Set the default image in the notification panel
   Future<void> setDefaultArtwork(String image) async {
     final byteData = image.startsWith('http')
