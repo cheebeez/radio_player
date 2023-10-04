@@ -62,7 +62,7 @@ public class SwiftRadioPlayerPlugin: NSObject, FlutterPlugin {
                 player.addToControlCenter()
             case "removeFromControlCenter":
                 player.removeFromControlCenter()
-            case "stopPlayer":
+            case "startTimer":
                 let seconds = call.arguments as! Double
                 player.stopPlayer(after: seconds)
             case "cancelTimer":
