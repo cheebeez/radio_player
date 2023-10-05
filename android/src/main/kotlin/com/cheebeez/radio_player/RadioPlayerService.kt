@@ -320,6 +320,14 @@ class RadioPlayerService : Service(), Player.Listener {
         return artwork
     }
 
+    fun addToControlCenter() {
+        // TODO
+    }
+
+    fun removeFromControlCenter() {
+        // TODO
+    }
+
     /** Extract URLs from user link. */
     private fun parseUrls(url: String): List<String> {
         var urls: List<String> = emptyList()

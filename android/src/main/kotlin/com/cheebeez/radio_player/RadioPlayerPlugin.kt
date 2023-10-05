@@ -122,6 +122,12 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
             "ignore_icy" -> {
                 service.ignoreIcy = true
             }
+            "addToControlCenter" -> {
+                service.addToControlCenter()
+            }
+            "removeFromControlCenter" -> {
+                service.removeFromControlCenter()
+            }
             else -> {
                 result.notImplemented()
             }
