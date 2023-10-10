@@ -52,20 +52,12 @@ class RadioPlayer {
 
   /// Stop playing after specified number of seconds.
   Future<void> setupTimer(Duration duration) async {
-    if (Platform.isIOS) {
-      return await _methodChannel.invokeMethod('startTimer', duration.inSeconds);
-    } else {
-      throw UnimplementedError();
-    }
+    return await _methodChannel.invokeMethod('startTimer', duration.inSeconds);
   }
 
   /// Cancel scheduled timer
   Future<void> removeTimer() async {
-    if (Platform.isIOS) {
-      return await _methodChannel.invokeMethod('cancelTimer');
-    } else {
-      throw UnimplementedError();
-    }
+    return await _methodChannel.invokeMethod('cancelTimer');
   }
 
   /// Set the default image in the notification panel

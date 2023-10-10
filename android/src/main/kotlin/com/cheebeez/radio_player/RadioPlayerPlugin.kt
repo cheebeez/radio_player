@@ -128,6 +128,13 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
             "removeFromControlCenter" -> {
                 service.removeFromControlCenter()
             }
+            "startTimer" -> {
+                val timerInterval = call.arguments<Double>()!!
+                service.startTimer(timerInterval)
+            }
+            "cancelTimer" -> {
+                service.cancelTimer()
+            }
             else -> {
                 result.notImplemented()
             }
