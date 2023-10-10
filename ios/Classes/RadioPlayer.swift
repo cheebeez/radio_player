@@ -23,7 +23,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     private(set) var metadataTrack: String?
     
     private var playerStopDate: Date?
-    private var timeObserverToken: Any?
+    private var timer: Timer?
   
     deinit {
         removeTimeObserver()
@@ -193,14 +193,17 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     func stopPlayer(after seconds: TimeInterval) {
         let seconds = max(1.0, seconds)
         playerStopDate = Date(timeIntervalSinceNow: seconds)
-        let time = CMTimeMakeWithSeconds(max(1.0, seconds), preferredTimescale: 1)
-        timeObserverToken = player.addPeriodicTimeObserver(forInterval: time, queue: .main) { [weak self] _ in
-            guard let self = self,
-                  let playerStopDate = playerStopDate,
-                  Date() >= playerStopDate else { return }
-            self.removeTimeObserver()
-            self.stop()
+        let timer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { [weak self] _ in
+            DispatchQueue.main.async {
+              guard let self = self,
+                    let playerStopDate = self.playerStopDate,
+                    Date() >= playerStopDate else { return }
+              self.removeTimeObserver()
+              self.stop()
+            }
         }
+        RunLoop.current.add(timer, forMode: .common)
+        self.timer = timer
     }
   
     func cancelTimer() {
@@ -302,8 +305,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
   
   private func removeTimeObserver() {
     playerStopDate = nil
-    if let timeObserverToken = timeObserverToken {
-      player?.removeTimeObserver(timeObserverToken)
-    }
+    timer?.invalidate()
+    timer = nil
   }
 }
