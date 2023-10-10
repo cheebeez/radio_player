@@ -122,6 +122,19 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
             "ignore_icy" -> {
                 service.ignoreIcy = true
             }
+            "addToControlCenter" -> {
+                service.addToControlCenter()
+            }
+            "removeFromControlCenter" -> {
+                service.removeFromControlCenter()
+            }
+            "startTimer" -> {
+                val timerInterval = call.arguments<Double>()!!
+                service.startTimer(timerInterval)
+            }
+            "cancelTimer" -> {
+                service.cancelTimer()
+            }
             else -> {
                 result.notImplemented()
             }
