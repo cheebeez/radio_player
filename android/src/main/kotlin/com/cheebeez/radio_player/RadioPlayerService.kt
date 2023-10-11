@@ -6,7 +6,6 @@
 
 package com.cheebeez.radio_player
 
-import com.cheebeez.radio_player.R
 import java.net.URL
 import java.net.URLEncoder
 import org.json.JSONObject
@@ -22,7 +21,12 @@ import android.content.Context
 import android.os.IBinder
 import android.os.Binder
 import android.app.Notification
-import android.util.Log
+import android.content.ComponentName
+import android.content.ServiceConnection
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.Worker
+import androidx.work.WorkerParameters
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.MediaItem
@@ -37,6 +41,9 @@ import com.google.android.exoplayer2.ui.PlayerNotificationManager.MediaDescripti
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
+import java.util.*
+import java.util.concurrent.TimeUnit
+import kotlin.collections.ArrayList
 
 /** Service for plays streaming audio content using ExoPlayer. */
 class RadioPlayerService : Service(), Player.Listener {
@@ -69,6 +76,12 @@ class RadioPlayerService : Service(), Player.Listener {
     private val localBroadcastManager: LocalBroadcastManager by lazy {
         LocalBroadcastManager.getInstance(this)
     }
+
+    private var workManager = WorkManager.getInstance(this)
+    private lateinit var stopPlayerJobId: UUID
+
+    private var lastPlayedStreamTitle: String? = null
+    private var lastPlayedStreamUrl: String? = null
 
     inner class LocalBinder : Binder() {
         // Return this instance of RadioPlayerService so clients can call public methods.
@@ -112,6 +125,9 @@ class RadioPlayerService : Service(), Player.Listener {
 
     /** Initializing the player with a new data. */
     fun setMediaItem(streamTitle: String, streamUrl: String) {
+        lastPlayedStreamTitle = streamTitle
+        lastPlayedStreamUrl = streamUrl
+
         mediaItems = runBlocking { 
                 GlobalScope.async { 
                     parseUrls(streamUrl).map { MediaItem.fromUri(it) }
@@ -162,6 +178,41 @@ class RadioPlayerService : Service(), Player.Listener {
     fun setDefaultArtwork(image: Bitmap) {
         defaultArtwork = image
         playerNotificationManager?.invalidate()
+    }
+
+    /** Resumes last played track and player notification on the system tray **/
+    fun addToControlCenter() {
+        if(lastPlayedStreamTitle != null && lastPlayedStreamUrl != null) {
+            setMediaItem(lastPlayedStreamTitle!!, lastPlayedStreamUrl!!)
+            play()
+        }
+    }
+
+    /** Stops last played track and removes player notification from the system tray **/
+    fun removeFromControlCenter() {
+        player.stop()
+        player.clearMediaItems()
+        player.seekTo(0)
+
+        mediaSession?.setMetadata(null)
+        playerNotificationManager?.invalidate()
+        stop()
+    }
+
+    /** Start timer job for delayed player stop **/
+    fun startTimer(timerDuration: Double) {
+        val countDownInterval = timerDuration.toLong() * 1000
+        stopPlayerJobId = UUID.randomUUID()
+        val stopPlayerJob = OneTimeWorkRequestBuilder<StopPlayerJob>()
+            .setInitialDelay(countDownInterval, TimeUnit.MILLISECONDS)
+            .setId(stopPlayerJobId)
+            .build()
+        workManager.beginWith(stopPlayerJob).enqueue()
+    }
+
+    /** Cancel timer job for delayed player stop **/
+    fun cancelTimer() {
+        workManager.cancelWorkById(stopPlayerJobId)
     }
 
     /** Creates a notification manager for background playback. */
@@ -245,6 +296,10 @@ class RadioPlayerService : Service(), Player.Listener {
         val stateIntent = Intent(ACTION_STATE_CHANGED)
         stateIntent.putExtra(ACTION_STATE_CHANGED_EXTRA, playWhenReady)
         localBroadcastManager.sendBroadcast(stateIntent)
+
+        if (!playWhenReady && playbackState == Player.STATE_READY) {
+            stop()
+        }
     }
 
     /** Triggers when player state changes. */
@@ -337,5 +392,21 @@ class RadioPlayerService : Service(), Player.Listener {
         }
 
         return urls
+    }
+
+    class StopPlayerJob(private val ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
+        override fun doWork(): Result {
+            val connection = object : ServiceConnection {
+                override fun onServiceConnected(className: ComponentName, service: IBinder) {
+                    val binder = service as RadioPlayerService.LocalBinder
+                    val radioPlayerService = binder.getService()
+                    radioPlayerService.stop()
+                }
+
+                override fun onServiceDisconnected(arg0: ComponentName) {}
+            }
+            ctx.bindService(Intent(ctx, RadioPlayerService::class.java), connection, Context.BIND_AUTO_CREATE)
+            return Result.success()
+        }
     }
 }
