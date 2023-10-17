@@ -91,6 +91,15 @@ class RadioPlayer {
     return image;
   }
 
+  /// Returns true if player is playing sound otherwise false.
+  Future<Bool> isPlaying() async {
+    if (Platform.isIOS) {
+      return _methodChannel.invokeMethod('isPlaying');
+    } else {
+      throw UnimplementedError();
+    }
+  }
+
   /// Get the playback state stream.
   Stream<bool> get stateStream {
     _stateStream ??= _stateEvents.receiveBroadcastStream().map<bool>((value) => value);

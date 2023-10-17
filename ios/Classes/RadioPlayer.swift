@@ -17,6 +17,12 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     var ignoreIcy: Bool = false
     var itunesArtworkParser: Bool = false
     var interruptionObserverAdded: Bool = false
+    var isPlaying: Bool {
+        guard let player = player else {
+            return false
+        }
+        return player.rate != 0 && player.error == nil
+    }
   
     private(set) var isAvailableInControlCenter = false
     private(set) var metadataArtist: String?
