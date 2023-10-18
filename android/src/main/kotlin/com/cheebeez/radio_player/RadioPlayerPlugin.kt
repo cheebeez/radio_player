@@ -135,6 +135,9 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
             "cancelTimer" -> {
                 service.cancelTimer()
             }
+            "isPlaying" -> {
+                result.success(service.isPlaying())
+            }
             else -> {
                 result.notImplemented()
             }

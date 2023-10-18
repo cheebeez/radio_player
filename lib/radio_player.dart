@@ -5,6 +5,7 @@
  */
 
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -93,11 +94,7 @@ class RadioPlayer {
 
   /// Returns true if player is playing sound otherwise false.
   Future<Bool> isPlaying() async {
-    if (Platform.isIOS) {
-      return _methodChannel.invokeMethod('isPlaying');
-    } else {
-      throw UnimplementedError();
-    }
+      return _methodChannel.invokeMethod('isPlaying') as Bool;
   }
 
   /// Get the playback state stream.

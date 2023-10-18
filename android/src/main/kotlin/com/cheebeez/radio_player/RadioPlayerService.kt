@@ -215,6 +215,9 @@ class RadioPlayerService : Service(), Player.Listener {
         workManager.cancelWorkById(stopPlayerJobId)
     }
 
+    /** Gets information about player's playing state **/
+    fun isPlaying(): Boolean = player.playWhenReady
+
     /** Creates a notification manager for background playback. */
     private fun createNotificationManager() {
         // Setup media session
