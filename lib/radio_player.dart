@@ -5,8 +5,6 @@
  */
 
 import 'dart:async';
-import 'dart:ffi';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -80,8 +78,8 @@ class RadioPlayer {
   }
 
   /// Set custom metadata.
-  Future<void> setCustomMetadata(List<String> metadata) async {
-    await _methodChannel.invokeMethod('metadata', metadata);
+  Future<void> setCustomMetadata({required String artist, required String track, required String coverUrl}) async {
+    await _methodChannel.invokeMethod('metadata', [artist, track, coverUrl]);
   }
 
   /// Returns the album cover if it has already been downloaded.
@@ -93,8 +91,9 @@ class RadioPlayer {
   }
 
   /// Returns true if player is playing sound otherwise false.
-  Future<Bool> isPlaying() async {
-      return _methodChannel.invokeMethod('isPlaying') as Bool;
+  Future<bool> isPlaying() async {
+    final result = await _methodChannel.invokeMethod('isPlaying');
+    return result as bool;
   }
 
   /// Get the playback state stream.

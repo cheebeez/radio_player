@@ -68,7 +68,8 @@ public class SwiftRadioPlayerPlugin: NSObject, FlutterPlugin {
             case "cancelTimer":
                 player.cancelTimer()
             case "isPlaying":
-                result(player.isPlaying)
+                let isPlaying = player.isPlaying
+                result(isPlaying)
             default:
                 result(FlutterMethodNotImplemented)
         }
