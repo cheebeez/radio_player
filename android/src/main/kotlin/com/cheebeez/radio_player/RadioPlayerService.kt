@@ -182,21 +182,14 @@ class RadioPlayerService : Service(), Player.Listener {
 
     /** Resumes last played track and player notification on the system tray **/
     fun addToControlCenter() {
-        if(lastPlayedStreamTitle != null && lastPlayedStreamUrl != null) {
-            setMediaItem(lastPlayedStreamTitle!!, lastPlayedStreamUrl!!)
-            play()
-        }
+        playerNotificationManager?.setUsePlayPauseActions(true)
+        playerNotificationManager?.invalidate()
     }
 
     /** Stops last played track and removes player notification from the system tray **/
     fun removeFromControlCenter() {
-        player.stop()
-        player.clearMediaItems()
-        player.seekTo(0)
-
-        mediaSession?.setMetadata(null)
+        playerNotificationManager?.setUsePlayPauseActions(false)
         playerNotificationManager?.invalidate()
-        stop()
     }
 
     /** Start timer job for delayed player stop **/
