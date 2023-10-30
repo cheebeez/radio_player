@@ -78,7 +78,7 @@ class RadioPlayer {
   }
 
   /// Set custom metadata.
-  Future<void> setCustomMetadata({required String artist, required String track, required String coverUrl}) async {
+  Future<void> setCustomMetadata({String artist = '', required String track, required String coverUrl}) async {
     await _methodChannel.invokeMethod('metadata', [artist, track, coverUrl]);
   }
 

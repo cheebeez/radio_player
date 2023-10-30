@@ -7,7 +7,7 @@
 import MediaPlayer
 import AVKit
 
-class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
+class RadioPlayer: NSObject {
     private var player: AVPlayer!
     private var playerItem: AVPlayerItem!
     var defaultArtwork: UIImage?
@@ -36,9 +36,9 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     }
   
     func setMediaItem() {
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = [MPMediaItemPropertyTitle: streamTitle, ]
-        defaultArtwork = nil
-        metadataArtwork = nil
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = [MPMediaItemPropertyTitle: streamTitle ?? "", ]
+//        defaultArtwork = nil
+//        metadataArtwork = nil
         playerItem = AVPlayerItem(url: URL(string: streamUrl)!)
 
         if (player == nil) {
@@ -49,6 +49,9 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
             runInBackground()
         } else {
             player.replaceCurrentItem(with: playerItem)
+            if metadataArtwork != nil{
+                setArtwork( metadataArtwork!)
+            }
         }
 
         // Set interruption handler.
@@ -57,11 +60,6 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
             NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
             interruptionObserverAdded = true
         }
-
-        // Set metadata handler.
-        let metaOutput = AVPlayerItemMetadataOutput(identifiers: nil)
-        metaOutput.setDelegate(self, queue: DispatchQueue.main)
-        playerItem.add(metaOutput)
     }
 
     func setMetadata(_ rawMetadata: Array<String>) {
@@ -230,25 +228,6 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
                 NotificationCenter.default.post(name: NSNotification.Name(rawValue: "state"), object: nil, userInfo: ["state": true])
             }
         }
-    }
-
-    func metadataOutput(_ output: AVPlayerItemMetadataOutput, didOutputTimedMetadataGroups groups: [AVTimedMetadataGroup],
-                from track: AVPlayerItemTrack?) {
-        if (ignoreIcy) { return }
-
-        var metadata: Array<String>!
-        let metaDataItems = groups.first.map({ $0.items })
-
-        // Parse title
-        guard let title = metaDataItems?.first?.stringValue else { return }
-        metadata = title.components(separatedBy: " - ")
-        if (metadata.count == 1) { metadata.append("") }
-
-        // Parse artwork
-        metaDataItems!.count > 1 ? metadata.append(metaDataItems![1].stringValue!) : metadata.append("")
-
-        // Update metadata
-        setMetadata(metadata)
     }
 
     func downloadImage(_ value: String) -> UIImage? {
