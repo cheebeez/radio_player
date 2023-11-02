@@ -58,7 +58,7 @@ class RadioPlayerService : Service(), Player.Listener {
     }
 
     var metadataArtwork: Bitmap? = null
-    var ignoreIcy: Boolean = false
+    var ignoreIcy: Boolean = true
     var itunesArtworkParser: Boolean = false
     lateinit var context: Context
     private lateinit var mediaItems: List<MediaItem>
