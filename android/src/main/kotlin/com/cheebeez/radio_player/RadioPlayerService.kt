@@ -7,10 +7,7 @@
 package com.cheebeez.radio_player
 
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import java.net.URL
-import java.net.URLEncoder
-import org.json.JSONObject
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -47,6 +44,7 @@ import kotlinx.coroutines.runBlocking
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
+
 
 /** Service for plays streaming audio content using ExoPlayer. */
 class RadioPlayerService : Service(), Player.Listener {
@@ -141,7 +139,6 @@ class RadioPlayerService : Service(), Player.Listener {
         lastPlayedStreamTitle = streamTitle
         lastPlayedStreamUrl = streamUrl
 
-
         mediaItems = runBlocking {
             GlobalScope.async {
                 parseUrls(streamUrl).map { MediaItem.fromUri(it) }
@@ -161,7 +158,7 @@ class RadioPlayerService : Service(), Player.Listener {
     }
 
     /** Updates the player's metadata. */
-    fun setMetadata(newMetadata: ArrayList<String>) {
+    private fun setMetadata(newMetadata: ArrayList<String>) {
         metadata = newMetadata
 
         // Download artwork.
@@ -169,7 +166,7 @@ class RadioPlayerService : Service(), Player.Listener {
 
         var title = metadata?.get(0) ?: notificationTitle;
         var track = metadata?.get(1) ?: "";
-        var artwork =  metadataArtwork ?: defaultArtwork;
+        var artwork = metadataArtwork ?: defaultArtwork;
         // Update metadata on the notification panel.
         // playerNotificationManager?.invalidate()
         val mdc = MediaMetadataCompat.Builder()
@@ -236,7 +233,7 @@ class RadioPlayerService : Service(), Player.Listener {
         // Setup audio focus
         val audioAttributes: AudioAttributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
-            .setContentType(C.CONTENT_TYPE_MUSIC)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .build()
 
         player.setAudioAttributes(audioAttributes, true);
@@ -334,56 +331,34 @@ class RadioPlayerService : Service(), Player.Listener {
         playbackState = state
     }
 
-    fun jsonToMap(jsonStr: String): Map<String, String?> {
-        val gson = Gson()
-        val type = object : TypeToken<Map<String, String?>>() {}.type
-
-        return try {
-            gson.fromJson(jsonStr, type)
-        } catch (e: JsonSyntaxException) {
-            emptyMap()
-        }
-    }
-
     /** Triggers when metadata comes from the stream. */
     override fun onMetadata(rawMetadata: Metadata) {
         if (ignoreIcy || rawMetadata[0] !is IcyInfo) return
         val icyInfo: IcyInfo = rawMetadata[0] as IcyInfo
         val json: String = icyInfo.title ?: return
         if (json.isEmpty()) return
-        var trackData = jsonToMap(json);
-        if (trackData.isEmpty()) return;
+        println("Metadata json: " + json);
+        val radioMetadata = RadioMetadata.fromJson(json)
+        trackTitle = radioMetadata.trackTitle
 
-        println("TRACK DATA" + trackData);
-        val title = trackData["title"]
-        val artist = trackData["artist"]
-        trackTitle =
-            if (!title.isNullOrBlank() && title != "unknown" && !artist.isNullOrBlank() && artist != "unknown") {
-                "$title - $artist"
-            } else {
-                ""
-            }
-
-        val cover = trackData["cover"]
+        val cover = radioMetadata.cover
         trackImage = if (!cover.isNullOrBlank() && !cover.contains("defaultSongImage")) {
             cover
         } else {
             streamImage
         }
-
         // Send the metadata to the Flutter side.
         val metadataIntent = Intent(ACTION_NEW_METADATA)
         metadataIntent.putStringArrayListExtra(
             ACTION_NEW_METADATA_EXTRA,
-            arrayListOf(title, artist, trackImage) as ArrayList<String>
+            arrayListOf(radioMetadata.title, radioMetadata.artist, trackImage) as ArrayList<String>
         )
         localBroadcastManager.sendBroadcast(metadataIntent)
-
         setMetadata(arrayListOf(streamTitle, trackTitle, trackImage) as ArrayList<String>);
     }
 
     /** Downloads an image from url and returns a Bitmap. */
-    fun downloadImage(value: String?): Bitmap? {
+    private fun downloadImage(value: String?): Bitmap? {
         if (value == null) return null
         var bitmap: Bitmap? = null
 
@@ -400,7 +375,6 @@ class RadioPlayerService : Service(), Player.Listener {
 
         return bitmap
     }
-
 
 
     /** Extract URLs from user link. */
@@ -446,6 +420,25 @@ class RadioPlayerService : Service(), Player.Listener {
                 Context.BIND_AUTO_CREATE
             )
             return Result.success()
+        }
+    }
+
+    data class RadioMetadata(
+        val title: String,
+        val artist: String,
+        val cover: String
+    ) {
+        val trackTitle: String
+            get() = if (title != "unknown" && artist != "unknown") "$title - $artist" else "unknown"
+
+        companion object {
+            fun fromJson(jsonString: String): RadioMetadata {
+                return try {
+                    Gson().fromJson(jsonString, RadioMetadata::class.java)
+                } catch (e: JsonSyntaxException) {
+                    RadioMetadata(title = "unknown", artist = "unknown", cover = "defaultSongImage")
+                }
+            }
         }
     }
 }
