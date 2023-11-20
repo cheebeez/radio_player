@@ -36,7 +36,7 @@ class RadioPlayer: NSObject , AVPlayerItemMetadataOutputPushDelegate {
     private var currentPlayerImage: UIImage?
     
     private var playerStopDate: Date?
-    private var timer: Timer?
+    private var timeObserver: Any?
    
     deinit {
         removeTimeObserver()
@@ -280,19 +280,24 @@ class RadioPlayer: NSObject , AVPlayerItemMetadataOutputPushDelegate {
     }
   
     func stopPlayer(after seconds: TimeInterval) {
-        let seconds = max(1.0, seconds)
+        removeTimeObserver()
+        let interval = CMTimeMakeWithSeconds(seconds, preferredTimescale: 1)
         playerStopDate = Date(timeIntervalSinceNow: seconds)
-        let timer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { [weak self] _ in
-            DispatchQueue.main.async {
-              guard let self = self,
-                    let playerStopDate = self.playerStopDate,
-                    Date() >= playerStopDate else { return }
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval,
+                                                      queue: .main) { [weak self] _ in
+            guard let self = self else { return }
+            guard let playerStopDate = self.playerStopDate else {
               self.removeTimeObserver()
-              self.stop()
+              return
+            }
+            let secondsLeft = Date().timeIntervalSince(playerStopDate)
+            if secondsLeft >= 0 {
+                self.removeTimeObserver()
+                self.stop()
+            } else if abs(secondsLeft) < seconds / 2 {
+                stopPlayer(after: abs(secondsLeft))
             }
         }
-        RunLoop.current.add(timer, forMode: .common)
-        self.timer = timer
     }
   
     func cancelTimer() {
@@ -335,8 +340,10 @@ class RadioPlayer: NSObject , AVPlayerItemMetadataOutputPushDelegate {
     }
   
   private func removeTimeObserver() {
-    playerStopDate = nil
-    timer?.invalidate()
-    timer = nil
+      playerStopDate = nil
+      if let timeObserver = timeObserver {
+          player.removeTimeObserver(timeObserver)
+      }
+      timeObserver = nil
   }
 }
