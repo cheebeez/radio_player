@@ -19,45 +19,19 @@ public class SwiftRadioPlayerPlugin: NSObject, FlutterPlugin {
         stateChannel.setStreamHandler(StateStreamHandler())
         let metadataChannel = FlutterEventChannel(name: "radio_player/metadataEvents", binaryMessenger: registrar.messenger())
         metadataChannel.setStreamHandler(MetadataStreamHandler())
-
-        // Channel for default artwork
-        let defaultArtworkChannel = FlutterBasicMessageChannel(name: "radio_player/setArtwork", binaryMessenger: registrar.messenger(), codec: FlutterBinaryCodec())
-        defaultArtworkChannel.setMessageHandler { message, result in
-            let image = UIImage(data: message as! Data)
-            instance.player.defaultArtwork = image
-            instance.player.setArtwork(image)
-            result(nil)
-        }
-
-        // Channel for metadata artwork
-        let metadataArtworkChannel = FlutterBasicMessageChannel(name: "radio_player/getArtwork", binaryMessenger: registrar.messenger(), codec: FlutterBinaryCodec())
-        metadataArtworkChannel.setMessageHandler { message, result in
-            let data = instance.player.metadataArtwork?.jpegData(compressionQuality: 1.0)
-            result(data)
-        }
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
             case "set":
                 let args = call.arguments as! Array<String>
-                player.streamTitle = args[0]
-                player.streamUrl = args[1]
-                player.setMediaItem()
+                player.setStream(streamUrl: args[0], title: args[1], streamImageUrl: args[2])
             case "play":
                 player.play()
             case "stop":
                 player.stop()
             case "pause":
                 player.pause()
-            case "metadata":
-                let metadata = call.arguments as! Array<String>
-                player.setMetadata(metadata)
-            case "itunes_artwork_parser":
-                let enable = call.arguments as! Bool
-                player.itunesArtworkParser = enable
-            case "ignore_icy":
-                player.ignoreIcy = true
             case "addToControlCenter":
                 player.addToControlCenter()
             case "removeFromControlCenter":

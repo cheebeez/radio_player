@@ -5,7 +5,6 @@
  */
 
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class RadioPlayer {
@@ -13,18 +12,15 @@ class RadioPlayer {
   static const _metadataEvents = EventChannel('radio_player/metadataEvents');
   static const _stateEvents = EventChannel('radio_player/stateEvents');
 
-  static const _defaultArtworkChannel = BasicMessageChannel("radio_player/setArtwork", BinaryCodec());
-  static const _metadataArtworkChannel = BasicMessageChannel("radio_player/getArtwork", BinaryCodec());
-
   Stream<bool>? _stateStream;
   Stream<List<String>>? _metadataStream;
 
   /// Set new streaming URL.
-  Future<void> setChannel({required String title, required String url, String? imagePath}) async {
+  Future<void> setChannel({required String title, required String url, required String imageUrl}) async {
     await Future.delayed(Duration(milliseconds: 500));
-    await _methodChannel.invokeMethod('set', [title, url]);
+    await _methodChannel.invokeMethod('set', [url, title, imageUrl]);
 
-    if (imagePath != null) setDefaultArtwork(imagePath);
+    // if (imagePath != null) setDefaultArtwork(imagePath);
   }
 
   Future<void> play() async {
@@ -57,37 +53,6 @@ class RadioPlayer {
   /// Cancel scheduled timer
   Future<void> removeTimer() async {
     return await _methodChannel.invokeMethod('cancelTimer');
-  }
-
-  /// Set the default image in the notification panel
-  Future<void> setDefaultArtwork(String image) async {
-    final byteData = image.startsWith('http')
-        ? await NetworkAssetBundle(Uri.parse(image)).load(image)
-        : await rootBundle.load(image);
-    _defaultArtworkChannel.send(byteData);
-  }
-
-  /// Helps avoid conflicts with custom metadata.
-  Future<void> ignoreIcyMetadata() async {
-    await _methodChannel.invokeMethod('ignore_icy');
-  }
-
-  /// Parse album covers from iTunes.
-  Future<void> itunesArtworkParser(bool enable) async {
-    await _methodChannel.invokeMethod('itunes_artwork_parser', enable);
-  }
-
-  /// Set custom metadata.
-  Future<void> setCustomMetadata({String artist = '', required String track, required String coverUrl}) async {
-    await _methodChannel.invokeMethod('metadata', [artist, track, coverUrl]);
-  }
-
-  /// Returns the album cover if it has already been downloaded.
-  Future<Image?> getArtworkImage() async {
-    final byteData = await _metadataArtworkChannel.send(ByteData(0));
-    Image? image;
-    if (byteData != null) image = Image.memory(byteData.buffer.asUint8List(), key: UniqueKey(), fit: BoxFit.cover);
-    return image;
   }
 
   /// Returns true if player is playing sound otherwise false.
