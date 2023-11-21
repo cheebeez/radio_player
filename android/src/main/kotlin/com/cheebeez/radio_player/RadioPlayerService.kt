@@ -60,6 +60,7 @@ class RadioPlayerService : Service(), Player.Listener {
 
     var metadataArtwork: Bitmap? = null
     var ignoreIcy: Boolean = false
+    var playButtonIsEnabled: Boolean = false
     lateinit var context: Context
     private lateinit var mediaItems: List<MediaItem>
 
@@ -149,6 +150,12 @@ class RadioPlayerService : Service(), Player.Listener {
         notificationTitle = streamTitle
         playerNotificationManager?.invalidate() ?: createNotificationManager()
 
+        if(playButtonIsEnabled){
+            addToControlCenter()
+        }else{
+            removeFromControlCenter()
+        }
+
         player.stop()
         player.clearMediaItems()
         player.seekTo(0)
@@ -187,12 +194,14 @@ class RadioPlayerService : Service(), Player.Listener {
 
     /** Resumes last played track and player notification on the system tray **/
     fun addToControlCenter() {
+        playButtonIsEnabled = true;
         playerNotificationManager?.setUsePlayPauseActions(true)
         playerNotificationManager?.invalidate()
     }
 
     /** Stops last played track and removes player notification from the system tray **/
     fun removeFromControlCenter() {
+        playButtonIsEnabled = false;
         playerNotificationManager?.setUsePlayPauseActions(false)
         playerNotificationManager?.invalidate()
     }
