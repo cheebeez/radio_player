@@ -39,8 +39,6 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var channel: MethodChannel
     private lateinit var stateChannel: EventChannel
     private lateinit var metadataChannel: EventChannel
-    private lateinit var defaultArtworkChannel: BasicMessageChannel<ByteBuffer>
-    private lateinit var metadataArtworkChannel: BasicMessageChannel<ByteBuffer>
     private lateinit var intent: Intent
     private lateinit var service: RadioPlayerService
 
@@ -64,8 +62,6 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
         channel.setMethodCallHandler(null)
         stateChannel.setStreamHandler(null)
         metadataChannel.setStreamHandler(null)
-        defaultArtworkChannel.setMessageHandler(null)
-        metadataArtworkChannel.setMessageHandler(null)
         context.unbindService(serviceConnection)
         context.stopService(intent)
     }
