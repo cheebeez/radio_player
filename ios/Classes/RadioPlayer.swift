@@ -21,6 +21,7 @@ class RadioPlayer: NSObject , AVPlayerItemMetadataOutputPushDelegate {
     }
   
     private(set) var isAvailableInControlCenter = false
+    private var playButtonIsEnabled = false
     private(set) var metadataArtist: String?
     private(set) var metadataTrack: String?
     
@@ -58,6 +59,12 @@ class RadioPlayer: NSObject , AVPlayerItemMetadataOutputPushDelegate {
         
         addInterruptionObserverIfNeed()
         
+        if(playButtonIsEnabled){
+            addToControlCenter()
+        }else{
+            removeFromControlCenter()
+        }
+        
         setMetadata(title: title)
         self.streamImage = downloadAndSetImage(imageUrl: streamImageUrl)
         self.streamTitle = title
@@ -81,6 +88,12 @@ class RadioPlayer: NSObject , AVPlayerItemMetadataOutputPushDelegate {
 
         // Set interruption handler.
         addInterruptionObserverIfNeed()
+        
+        if(playButtonIsEnabled){
+            addToControlCenter()
+        }else{
+            removeFromControlCenter()
+        }
         
         let metaOutput = AVPlayerItemMetadataOutput(identifiers: nil)
         metaOutput.setDelegate(self, queue: DispatchQueue.main)
@@ -256,7 +269,7 @@ class RadioPlayer: NSObject , AVPlayerItemMetadataOutputPushDelegate {
     }
   
     func addToControlCenter() {
-        isAvailableInControlCenter = true
+        playButtonIsEnabled = true
         UIApplication.shared.beginReceivingRemoteControlEvents()
         let commandCenter = MPRemoteCommandCenter.shared()
         commandCenter.playCommand.isEnabled = true
@@ -270,13 +283,11 @@ class RadioPlayer: NSObject , AVPlayerItemMetadataOutputPushDelegate {
     }
     
     func removeFromControlCenter() {
-        isAvailableInControlCenter = false
+        playButtonIsEnabled = false
         UIApplication.shared.endReceivingRemoteControlEvents()
         let commandCenter = MPRemoteCommandCenter.shared()
         commandCenter.playCommand.isEnabled = false
         commandCenter.pauseCommand.isEnabled = false
-      
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
   
     func stopPlayer(after seconds: TimeInterval) {
