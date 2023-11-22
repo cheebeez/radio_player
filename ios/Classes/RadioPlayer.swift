@@ -302,7 +302,7 @@ class RadioPlayer: NSObject , AVPlayerItemMetadataOutputPushDelegate {
               return
             }
             let secondsLeft = Date().timeIntervalSince(playerStopDate)
-            if secondsLeft >= 0 {
+            if secondsLeft >= -1 {
                 self.removeTimeObserver()
                 self.stop()
             } else if abs(secondsLeft) < seconds / 2 {
