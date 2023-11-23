@@ -74,4 +74,9 @@ class RadioPlayer {
     });
     return _metadataStream!;
   }
+
+  void resetStreams() {
+    _metadataStream = null;
+    _stateStream = null;
+  }
 }
