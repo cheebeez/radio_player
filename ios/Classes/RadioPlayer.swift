@@ -7,25 +7,77 @@
 import MediaPlayer
 import AVKit
 
-class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
+class RadioPlayer: NSObject , AVPlayerItemMetadataOutputPushDelegate {
     private var player: AVPlayer!
     private var playerItem: AVPlayerItem!
-    var defaultArtwork: UIImage?
-    var metadataArtwork: UIImage?
-    var streamTitle: String!
-    var streamUrl: String!
-    var ignoreIcy: Bool = false
-    var itunesArtworkParser: Bool = false
-    var interruptionObserverAdded: Bool = false
+    
+    private var interruptionObserverAdded: Bool = false
+    
+    var isPlaying: Bool {
+        guard let player = player else {
+            return false
+        }
+        return player.rate != 0 && player.error == nil
+    }
+  
+    private(set) var isAvailableInControlCenter = false
+    private var playButtonIsEnabled = false
+    private(set) var metadataArtist: String?
+    private(set) var metadataTrack: String?
+    
+    // Stream data
+    private var streamUrl = ""
+    private var streamTitle = ""
+    private var streamImage: UIImage?
+    
+    // Track data
+    private var trackTitle = ""
+    private var trackImage: UIImage?
 
-    func setMediaItem() {
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = [MPMediaItemPropertyTitle: streamTitle, ]
-        defaultArtwork = nil
-        metadataArtwork = nil
-        playerItem = AVPlayerItem(url: URL(string: streamUrl)!)
-
+    private var currentPlayerImage: UIImage?
+    
+    private var playerStopDate: Date?
+    private var timeObserver: Any?
+   
+    deinit {
+        removeTimeObserver()
+    }
+    
+    func setStream(streamUrl: String, title: String, streamImageUrl: String) {
+        if(self.streamUrl == streamUrl) {return}
+        self.streamUrl = streamUrl
+        playerItem = AVPlayerItem(url: URL(string: self.streamUrl)!)
+        
         if (player == nil) {
-            // Create an AVPlayer.
+            player = AVPlayer(playerItem: playerItem)
+            player.automaticallyWaitsToMinimizeStalling = true
+            player.addObserver(self, forKeyPath: #keyPath(AVPlayer.timeControlStatus), options: [.new], context: nil)
+            runInBackground()
+        } else {
+            player.replaceCurrentItem(with: playerItem)
+        }
+        
+        addInterruptionObserverIfNeed()
+        
+        if(playButtonIsEnabled){
+            addToControlCenter()
+        }else{
+            removeFromControlCenter()
+        }
+        
+        setMetadata(title: title)
+        self.streamImage = downloadAndSetImage(imageUrl: streamImageUrl)
+        self.streamTitle = title
+        
+        let metaOutput = AVPlayerItemMetadataOutput(identifiers: nil)
+        metaOutput.setDelegate(self, queue: DispatchQueue.main)
+        playerItem.add(metaOutput)
+    }
+  
+    private func resetStream() {
+        playerItem = AVPlayerItem(url: URL(string: streamUrl)!)
+        
+        if (player == nil) {
             player = AVPlayer(playerItem: playerItem)
             player.automaticallyWaitsToMinimizeStalling = true
             player.addObserver(self, forKeyPath: #keyPath(AVPlayer.timeControlStatus), options: [.new], context: nil)
@@ -35,36 +87,48 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         }
 
         // Set interruption handler.
+        addInterruptionObserverIfNeed()
+        
+        if(playButtonIsEnabled){
+            addToControlCenter()
+        }else{
+            removeFromControlCenter()
+        }
+        
+        let metaOutput = AVPlayerItemMetadataOutput(identifiers: nil)
+        metaOutput.setDelegate(self, queue: DispatchQueue.main)
+        playerItem.add(metaOutput)
+        
+    }
+    
+    private func addInterruptionObserverIfNeed(){
         if (!interruptionObserverAdded) {
             NotificationCenter.default.addObserver(self, selector: #selector(playerItemFailedToPlay), name: NSNotification.Name.AVPlayerItemFailedToPlayToEndTime, object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
             interruptionObserverAdded = true
         }
-
-        // Set metadata handler.
-        let metaOutput = AVPlayerItemMetadataOutput(identifiers: nil)
-        metaOutput.setDelegate(self, queue: DispatchQueue.main)
-        playerItem.add(metaOutput)
     }
-
-    func setMetadata(_ rawMetadata: Array<String>) {
-        var metadata: Array<String> = rawMetadata.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-        // Parse artwork from iTunes.
-        if (itunesArtworkParser && metadata[2].isEmpty) {
-            metadata[2] = parseArtworkFromItunes(metadata[0], metadata[1])
+    
+    private func setMetadata(title: String, track: String? = nil) {
+        if isAvailableInControlCenter {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = [MPMediaItemPropertyArtist: title, MPMediaItemPropertyTitle: track ?? "", ]
         }
-
-        // Update the now playing info
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = [
-                MPMediaItemPropertyArtist: metadata[0], MPMediaItemPropertyTitle: metadata[1], ]
-
-        // Download and set album cover
-        metadataArtwork = downloadImage(metadata[2])
-        setArtwork(metadataArtwork ?? defaultArtwork)
-
-        // Send metadata to client
-        NotificationCenter.default.post(name: NSNotification.Name(rawValue: "metadata"), object: nil, userInfo: ["metadata": metadata])
+    }
+    
+    private func downloadAndSetImage(imageUrl: String) -> UIImage? {
+        let newImage = downloadImage(imageUrl);
+        if(isAvailableInControlCenter){
+            setMetadataImage(newImage)
+        }
+        return newImage
+    }
+    
+    private func setMetadataImage(_ image: UIImage?) {
+        if( image == currentPlayerImage) {return}
+        guard let currentPlayerImage = image else { return }
+        
+        let artwork = MPMediaItemArtwork(boundsSize: currentPlayerImage.size) { (size) -> UIImage in currentPlayerImage }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo?.updateValue(artwork, forKey: MPMediaItemPropertyArtwork)
     }
 
     /// Resume playback after phone call.
@@ -92,20 +156,8 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
 
     }
 
-    func setArtwork(_ image: UIImage?) {
-        guard let image = image else { return }
-
-        let artwork = MPMediaItemArtwork(boundsSize: image.size) { (size) -> UIImage in image }
-        MPNowPlayingInfoCenter.default().nowPlayingInfo?.updateValue(artwork, forKey: MPMediaItemPropertyArtwork)
-    }
-
     func play() {
-        if player.currentItem == nil {
-            player.replaceCurrentItem(with: playerItem) 
-        } else if player.currentItem?.isPlaybackBufferEmpty == true || player.currentItem?.status == .failed {
-            setMediaItem()
-        } 
-
+        resetStream()
         player.play()
     }
 
@@ -117,8 +169,21 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     func pause() {
         player.pause()
     }
+    
+    func removeFromBackground() {
+        UIApplication.shared.endReceivingRemoteControlEvents()
+        let commandCenter = MPRemoteCommandCenter.shared()
+        commandCenter.playCommand.removeTarget(self)
+        commandCenter.pauseCommand.removeTarget(self)
+        commandCenter.playCommand.isEnabled = false
+        commandCenter.pauseCommand.isEnabled = false
+      
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        try? AVAudioSession.sharedInstance().setActive(false)
+    }
 
     func runInBackground() {
+        isAvailableInControlCenter = true
         try? AVAudioSession.sharedInstance().setActive(true)
         try? AVAudioSession.sharedInstance().setCategory(.playback)
 
@@ -136,9 +201,118 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         // Pause button.
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { [weak self] (event) -> MPRemoteCommandHandlerStatus in
-            self?.pause()
+            self?.stop()
             return .success
         }
+    }
+    
+    func jsonToMap(_ jsonString: String) -> [String: Any] {
+        guard let jsonData = jsonString.data(using: .utf8) else {
+            return [:]
+        }
+        do {
+            if let jsonMap = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
+                return jsonMap
+            }
+        } catch {
+            print("Ошибка парсинга JSON: \(error)")
+        }
+        return [:]
+    }
+    
+    func strToJson(_ oldStr: String) -> String{
+        var str = oldStr;
+        str = str.replacingOccurrences(of: "\"", with: "'")
+        str = str.replacingOccurrences(of: "{'", with: "{\"")
+        str = str.replacingOccurrences(of: "''}", with: "\"}")
+        str = str.replacingOccurrences(of: "None", with: "null")
+        str = str.replacingOccurrences(of: "', '", with: "\", \"")
+        str = str.replacingOccurrences(of: "': '", with: "\": \"")
+        str = str.replacingOccurrences(of: "':", with: "\":")
+        return str;
+    }
+    
+    func metadataOutput(_ output: AVPlayerItemMetadataOutput, didOutputTimedMetadataGroups groups: [AVTimedMetadataGroup],
+                        from track: AVPlayerItemTrack?) {
+        let metaDataItems = groups.first.map({ $0.items })
+        let first = metaDataItems?.first
+        guard let json = metaDataItems?.first?.stringValue else { return }
+       
+        print("trackData: \(strToJson(json))")
+        let trackData = jsonToMap(strToJson(json));
+      
+        let title = trackData["title"] as? String ?? ""
+        let artistTitle = trackData["artist"] as? String ?? ""
+        let cover = trackData["cover"] as? String ?? ""
+        
+        updateTrackMetada(title: title, artistTitle: artistTitle, cover: cover)
+    }
+    
+    private func updateTrackMetada(title: String, artistTitle: String, cover: String){
+        // NOTIFY Flutter about meta
+        NotificationCenter.default.post(name: NSNotification.Name(rawValue: "metadata"), object: nil, userInfo: ["metadata": [title, artistTitle, cover]])
+        
+        if !title.isEmpty, title != "unknown", !artistTitle.isEmpty, artistTitle != "unknown" {
+            trackTitle = "\(title) - \(artistTitle)"
+        } else {
+            trackTitle = ""
+        }
+        
+        if !cover.isEmpty, !cover.contains("defaultSongImage") {
+            trackImage = downloadAndSetImage(imageUrl: cover)
+        } else {
+            trackImage = nil
+        }
+   
+        setMetadata(title: streamTitle, track: trackTitle)
+        setMetadataImage(trackImage ?? streamImage)
+    }
+  
+    func addToControlCenter() {
+        playButtonIsEnabled = true
+        UIApplication.shared.beginReceivingRemoteControlEvents()
+        let commandCenter = MPRemoteCommandCenter.shared()
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.pauseCommand.isEnabled = true
+        
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = [ MPMediaItemPropertyTitle: metadataTrack ?? streamTitle ]
+        if let metadataArtist = metadataArtist {
+          MPNowPlayingInfoCenter.default().nowPlayingInfo?.updateValue(metadataArtist, forKey: MPMediaItemPropertyArtist)
+        }
+        setMetadataImage(trackImage ?? streamImage)
+    }
+    
+    func removeFromControlCenter() {
+        playButtonIsEnabled = false
+        UIApplication.shared.endReceivingRemoteControlEvents()
+        let commandCenter = MPRemoteCommandCenter.shared()
+        commandCenter.playCommand.isEnabled = false
+        commandCenter.pauseCommand.isEnabled = false
+    }
+  
+    func stopPlayer(after seconds: TimeInterval) {
+        removeTimeObserver()
+        let interval = CMTimeMakeWithSeconds(seconds, preferredTimescale: 1)
+        playerStopDate = Date(timeIntervalSinceNow: seconds)
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval,
+                                                      queue: .main) { [weak self] _ in
+            guard let self = self else { return }
+            guard let playerStopDate = self.playerStopDate else {
+              self.removeTimeObserver()
+              return
+            }
+            let secondsLeft = Date().timeIntervalSince(playerStopDate)
+            if secondsLeft >= -1 {
+                self.removeTimeObserver()
+                self.stop()
+            } else if abs(secondsLeft) < seconds / 2 {
+                self.stopPlayer(after: abs(secondsLeft))
+            }
+        }
+    }
+  
+    func cancelTimer() {
+        removeTimeObserver()
     }
 
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
@@ -151,29 +325,11 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
 
             if status == .paused {
                 NotificationCenter.default.post(name: NSNotification.Name(rawValue: "state"), object: nil, userInfo: ["state": false])
+                setMetadataImage(streamImage)
             } else if status == .waitingToPlayAtSpecifiedRate {
                 NotificationCenter.default.post(name: NSNotification.Name(rawValue: "state"), object: nil, userInfo: ["state": true])
             }
         }
-    }
-
-    func metadataOutput(_ output: AVPlayerItemMetadataOutput, didOutputTimedMetadataGroups groups: [AVTimedMetadataGroup],
-                from track: AVPlayerItemTrack?) {
-        if (ignoreIcy) { return }
-
-        var metadata: Array<String>!
-        let metaDataItems = groups.first.map({ $0.items })
-
-        // Parse title
-        guard let title = metaDataItems?.first?.stringValue else { return }
-        metadata = title.components(separatedBy: " - ")
-        if (metadata.count == 1) { metadata.append("") }
-
-        // Parse artwork
-        metaDataItems!.count > 1 ? metadata.append(metaDataItems![1].stringValue!) : metadata.append("")
-
-        // Update metadata
-        setMetadata(metadata)
     }
 
     func downloadImage(_ value: String) -> UIImage? {
@@ -183,7 +339,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         let semaphore = DispatchSemaphore(value: 0)
 
         let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
-            if let data = data, error == nil { 
+            if let data = data, error == nil {
                 result = UIImage(data: data)
             }
             semaphore.signal()
@@ -193,44 +349,12 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         let _ = semaphore.wait(timeout: .distantFuture)
         return result
     }
-
-    func parseArtworkFromItunes(_ artist: String, _ track: String) -> String {
-        var artwork: String = ""
-
-        // Generate a request.
-        guard let term = (artist + " - " + track).addingPercentEncoding(withAllowedCharacters: .alphanumerics) 
-        else { return artwork }
-
-        guard let url = URL(string: "https://itunes.apple.com/search?term=" + term + "&limit=1")
-        else { return artwork }
-
-        // Download content.
-        var jsonData: Data?
-        let semaphore = DispatchSemaphore(value: 0)
-
-        let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
-            if let data = data, error == nil {
-                jsonData = data
-            }
-            semaphore.signal()
-        }
-
-        task.resume()
-        let _ = semaphore.wait(timeout: .distantFuture)
-
-        // Convert content to Dictonary.
-        guard let jsonData = jsonData else { return artwork }
-        guard let dict = try? JSONSerialization.jsonObject(with: jsonData, options: .allowFragments) as? [String:Any]
-        else { return artwork }
-
-        // Make sure the result is found.
-        guard let _ = dict["resultCount"], dict["resultCount"] as! Int > 0 else { return artwork }
-
-        // Get artwork
-        guard let results = dict["results"] as? Array<[String:Any]> else { return artwork }
-        guard let artworkUrl30 = results[0]["artworkUrl30"] as? String else { return artwork }
-        artwork = artworkUrl30.replacingOccurrences(of: "30x30bb", with: "500x500bb")
-
-        return artwork
-    }
+  
+  private func removeTimeObserver() {
+      playerStopDate = nil
+      if let timeObserver = timeObserver {
+          player.removeTimeObserver(timeObserver)
+      }
+      timeObserver = nil
+  }
 }

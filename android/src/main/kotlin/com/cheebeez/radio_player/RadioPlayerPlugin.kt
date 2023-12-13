@@ -39,8 +39,6 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var channel: MethodChannel
     private lateinit var stateChannel: EventChannel
     private lateinit var metadataChannel: EventChannel
-    private lateinit var defaultArtworkChannel: BasicMessageChannel<ByteBuffer>
-    private lateinit var metadataArtworkChannel: BasicMessageChannel<ByteBuffer>
     private lateinit var intent: Intent
     private lateinit var service: RadioPlayerService
 
@@ -54,32 +52,6 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
         metadataChannel = EventChannel(flutterPluginBinding.binaryMessenger, "radio_player/metadataEvents")
         metadataChannel.setStreamHandler(metadataStreamHandler)
 
-        // Channel for default artwork
-        defaultArtworkChannel = BasicMessageChannel(flutterPluginBinding.binaryMessenger, "radio_player/setArtwork", BinaryCodec.INSTANCE)
-        defaultArtworkChannel.setMessageHandler { message, result -> run {
-                val array = message!!.array();
-                val image = BitmapFactory.decodeByteArray(array, 0, array.size);
-                service.setDefaultArtwork(image)
-                result.reply(null)
-            }
-        }
-
-        // Channel for metadata artwork
-        metadataArtworkChannel = BasicMessageChannel(flutterPluginBinding.binaryMessenger, "radio_player/getArtwork", BinaryCodec.INSTANCE)
-        metadataArtworkChannel.setMessageHandler { message, result -> run {
-                if (service.metadataArtwork == null) {
-                    result.reply(null)
-                } else {
-                    val stream = ByteArrayOutputStream()
-                    service.metadataArtwork!!.compress(Bitmap.CompressFormat.JPEG, 100, stream)
-                    val array = stream.toByteArray();
-                    val byteBuffer = ByteBuffer.allocateDirect(array.size);
-                    byteBuffer.put(array)
-                    result.reply(byteBuffer)
-                }
-            }
-        }
-
         // Start service
         intent = Intent(context, RadioPlayerService::class.java)
         context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT)
@@ -90,8 +62,6 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
         channel.setMethodCallHandler(null)
         stateChannel.setStreamHandler(null)
         metadataChannel.setStreamHandler(null)
-        defaultArtworkChannel.setMessageHandler(null)
-        metadataArtworkChannel.setMessageHandler(null)
         context.unbindService(serviceConnection)
         context.stopService(intent)
     }
@@ -100,7 +70,7 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
         when (call.method) {
             "set" -> {
                 val args = call.arguments<ArrayList<String>>()!!
-                service.setMediaItem(args[0], args[1])
+                service.setMediaItem(args[0], args[1], args[2])
             }
             "play" -> {
                 service.play()
@@ -111,16 +81,21 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
             "pause" -> {
                 service.pause()
             }
-            "metadata" -> {
-                val metadata = call.arguments<ArrayList<String>>()!!
-                service.setMetadata(metadata)
+            "addToControlCenter" -> {
+                service.addToControlCenter()
             }
-            "itunes_artwork_parser" -> {
-                val enable = call.arguments<Boolean>()!!
-                service.itunesArtworkParser = enable
+            "removeFromControlCenter" -> {
+                service.removeFromControlCenter()
             }
-            "ignore_icy" -> {
-                service.ignoreIcy = true
+            "startTimer" -> {
+                val timerInterval = call.arguments<Double>()!!
+                service.startTimer(timerInterval)
+            }
+            "cancelTimer" -> {
+                service.cancelTimer()
+            }
+            "isPlaying" -> {
+                result.success(service.isPlaying())
             }
             else -> {
                 result.notImplemented()
