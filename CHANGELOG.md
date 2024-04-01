@@ -1,3 +1,7 @@
+## 1.5.1
+
+* Add duplicate metadata check in iOS.
+
 ## 1.5.0
 
 * Updated Android target SDK to 34.

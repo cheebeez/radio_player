@@ -12,6 +12,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
     private var playerItem: AVPlayerItem!
     var defaultArtwork: UIImage?
     var metadataArtwork: UIImage?
+    var currentMetadata: Array<String>!
     var streamTitle: String!
     var streamUrl: String!
     var ignoreIcy: Bool = false
@@ -47,23 +48,29 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         playerItem.add(metaOutput)
     }
 
-    func setMetadata(_ rawMetadata: Array<String>) {
-        var metadata: Array<String> = rawMetadata.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+    func setMetadata(_ newMetadata: Array<String>) {
+        // Check for duplicate metadata.
+        if (currentMetadata == newMetadata) { return }
+        currentMetadata = newMetadata
+
+        // Prepare metadata string for display.
+        var metadata = newMetadata.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
 
         // Parse artwork from iTunes.
         if (itunesArtworkParser && metadata[2].isEmpty) {
             metadata[2] = parseArtworkFromItunes(metadata[0], metadata[1])
         }
 
-        // Update the now playing info
+        // Update the now playing info.
         MPNowPlayingInfoCenter.default().nowPlayingInfo = [
                 MPMediaItemPropertyArtist: metadata[0], MPMediaItemPropertyTitle: metadata[1], ]
 
-        // Download and set album cover
+        // Download and set album cover.
         metadataArtwork = downloadImage(metadata[2])
         setArtwork(metadataArtwork ?? defaultArtwork)
 
-        // Send metadata to client
+
+        // Send metadata to client.
         NotificationCenter.default.post(name: NSNotification.Name(rawValue: "metadata"), object: nil, userInfo: ["metadata": metadata])
     }
 
@@ -161,19 +168,19 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
                 from track: AVPlayerItemTrack?) {
         if (ignoreIcy) { return }
 
-        var metadata: Array<String>!
-        let metaDataItems = groups.first.map({ $0.items })
+        var result: Array<String>!
+        let rawMetadata = groups.first.map({ $0.items })
 
         // Parse title
-        guard let title = metaDataItems?.first?.stringValue else { return }
-        metadata = title.components(separatedBy: " - ")
-        if (metadata.count == 1) { metadata.append("") }
+        guard let title = rawMetadata?.first?.stringValue else { return }
+        result = title.components(separatedBy: " - ")
+        if (result.count == 1) { result.append("") }
 
         // Parse artwork
-        metaDataItems!.count > 1 ? metadata.append(metaDataItems![1].stringValue!) : metadata.append("")
+        rawMetadata!.count > 1 ? result.append(rawMetadata![1].stringValue!) : result.append("")
 
         // Update metadata
-        setMetadata(metadata)
+        setMetadata(result)
     }
 
     func downloadImage(_ value: String) -> UIImage? {
