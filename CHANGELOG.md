@@ -1,53 +1,36 @@
-## 1.5.1
+## 1.6
 
-* Add duplicate metadata check in iOS.
+* Updated Gradle to the current version.
 
-## 1.5.0
+## 1.5
 
-* Updated Android target SDK to 34.
-* Updated ExoPlayer.
-* Updated example.
+* Added a duplicate metadata check for iOS.
+* Updated Android target SDK to version 34.
+* Updated ExoPlayer to the latest version.
+* Updated example project.
 
-## 1.4.2
+## 1.4
 
-* Fix player behavior after disconnect on iOS.
+* Fixed player behavior after disconnecting on iOS.
+* Fixed metadata issues on some older Android devices.
+* Fixed metadata display on the One UI lock screen.
 
-## 1.4.1
+## 1.3
 
-* Fix metadata on some old Androids.
+* Added URL support for setDefaultArtwork.
 
-## 1.4.0
+## 1.2
 
-* Fix metadata on the One UI lock screen.
+* Added a metadata format check for Android.
+* Fixed auto-resume playback issue on iOS.
+* Updated various dependencies.
 
-## 1.3.0
+## 1.1
 
-* Add URL support to setDefaultArtwork.
+* Renamed the notification channel.
+* Fixed artwork display in the Android 13 notification bar.
+* Fixed an unused variable warning.
 
-## 1.2.2
-
-* Updated dependencies.
-
-## 1.2.1
-
-* Add a metadata format check in Android.
-
-## 1.2.0
-
-* Fixed auto-resume playback on iOS.
-
-## 1.1.1
-
-* Rename notification channel.
-
-## 1.1.0
-
-* Fix artwork in Android 13 notification bar.
-
-## 1.0.1
-
-* Fix unused variable warning.
-
-## 1.0.0
+## 1.0
 
 * Initial release.
