@@ -2,7 +2,7 @@
 
 A Flutter plugin to play streaming audio content with background support and lock screen controls.
 
-[![flutter platform](https://img.shields.io/badge/Platform-Flutter-yellow.svg)](https://flutter.io)
+[![flutter platform](https://img.shields.io/badge/Platform-Flutter-yellow.svg)](https://flutter.dev)
 [![pub package](https://img.shields.io/pub/v/radio_player.svg)](https://pub.dev/packages/radio_player)
 
 ## Installation
