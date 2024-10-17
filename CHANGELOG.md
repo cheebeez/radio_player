@@ -1,3 +1,7 @@
+## 1.7.0
+
+* Updated Android target SDK to version 35.
+
 ## 1.6.0
 
 * Updated Gradle to the current version.
