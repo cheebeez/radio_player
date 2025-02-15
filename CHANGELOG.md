@@ -1,3 +1,7 @@
+## 1.7.1
+
+* Remove unnecessary import causing build error.
+
 ## 1.7.0
 
 * Updated Android target SDK to version 35.
