@@ -71,9 +71,10 @@ class RadioPlayer {
     final byteData = await _metadataArtworkChannel.send(ByteData(0));
     Image? image;
 
-    if (byteData != null)
+    if (byteData != null) {
       image = Image.memory(byteData.buffer.asUint8List(),
           key: UniqueKey(), fit: BoxFit.cover);
+    }
 
     return image;
   }
