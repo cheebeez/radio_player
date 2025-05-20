@@ -133,7 +133,6 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
         override fun onServiceConnected(componentName: ComponentName, iBinder: IBinder) {
             val binder = iBinder as RadioPlayerService.LocalBinder
             service = binder.getService()
-            service.context = context
         }
 
         // Called when the connection with the service disconnects unexpectedly.

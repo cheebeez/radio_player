@@ -15,11 +15,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.app.PendingIntent
 import android.content.Intent
-import android.content.Context
 import android.os.IBinder
 import android.os.Binder
 import android.app.Notification
-import android.util.Log
 import androidx.media3.common.Player
 import androidx.media3.common.MediaItem
 import androidx.media3.common.AudioAttributes
@@ -52,7 +50,6 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
     var metadataArtwork: Bitmap? = null
     var ignoreIcy: Boolean = false
     var itunesArtworkParser: Boolean = false
-    lateinit var context: Context
     private lateinit var mediaItems: List<MediaItem>
     private var defaultArtwork: Bitmap? = null
     private var playerNotificationManager: PlayerNotificationManager? = null
@@ -169,35 +166,19 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
 
     /** Creates a notification manager for background playback. */
     private fun createNotificationManager() {
-/*
         // Setup media session
-        val intent = Intent(Intent.ACTION_MEDIA_BUTTON)
-        val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-        mediaSession = MediaSessionCompat(context, "RadioPlayerService", null, pendingIntent)
+        val notificationIntent = Intent()
+        notificationIntent.setClassName(applicationContext.packageName, "${applicationContext.packageName}.MainActivity")
 
-        mediaSession?.let {
-            it.isActive = true
-            val mediaSessionConnector = MediaSessionConnector(it)
-            mediaSessionConnector.setPlayer(player)
-        }
-*/
-
-        val sessionActivityIntent = Intent()
-        sessionActivityIntent.setClassName(context.packageName, "${context.packageName}.MainActivity")
-
-        val activityPendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            sessionActivityIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val contentIntent = PendingIntent.getActivity(
+            applicationContext, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
         mediaSession = MediaSession.Builder(this, player)
-            .setSessionActivity(activityPendingIntent)
+            .setSessionActivity(contentIntent)
             .setId(NOTIFICATION_CHANNEL_ID)
             .build()
 
-        addSession(mediaSession!!)
+        //addSession(mediaSession!!)
 
         // Setup audio focus
         val audioAttributes: AudioAttributes = AudioAttributes.Builder()
@@ -210,9 +191,7 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
         // Setup notification manager.
         val mediaDescriptionAdapter = object : MediaDescriptionAdapter {
             override fun createCurrentContentIntent(player: Player): PendingIntent? {
-                val notificationIntent = Intent()
-                notificationIntent.setClassName(context.packageName, "${context.packageName}.MainActivity")
-                return PendingIntent.getActivity(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                return contentIntent
             }
             override fun getCurrentLargeIcon(player: Player, callback: BitmapCallback): Bitmap? {
                 return metadataArtwork ?: defaultArtwork;
@@ -251,7 +230,7 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
                 setUsePreviousAction(false)
                 setUseNextAction(false)
                 setPlayer(player)
-                mediaSession?.let { setMediaSessionToken(it.sessionCompatToken) }
+                mediaSession?.let { setMediaSessionToken(it.getPlatformToken()) }
             }
     }
 
