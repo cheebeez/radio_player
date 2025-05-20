@@ -30,7 +30,6 @@ import android.content.BroadcastReceiver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.IBinder
-import com.google.android.exoplayer2.util.Util
 
 /** RadioPlayerPlugin */
 class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
