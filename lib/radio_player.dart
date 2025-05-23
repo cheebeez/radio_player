@@ -24,9 +24,7 @@ class RadioPlayer {
   /// Set new streaming URL.
   Future<void> setChannel(
       {required String title, required String url, String? imagePath}) async {
-    await Future.delayed(Duration(milliseconds: 500));
     await _methodChannel.invokeMethod('set', [title, url]);
-
     if (imagePath != null) setDefaultArtwork(imagePath);
   }
 

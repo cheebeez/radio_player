@@ -6,6 +6,7 @@
 
 package com.cheebeez.radio_player
 
+import android.util.Log
 import androidx.annotation.NonNull
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -30,6 +31,12 @@ import android.content.BroadcastReceiver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.IBinder
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
 
 /** RadioPlayerPlugin */
 class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
@@ -40,7 +47,9 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var defaultArtworkChannel: BasicMessageChannel<ByteBuffer>
     private lateinit var metadataArtworkChannel: BasicMessageChannel<ByteBuffer>
     private lateinit var intent: Intent
-    private lateinit var service: RadioPlayerService
+    private var service: RadioPlayerService? = null
+    private val serviceStartedSignal = CompletableDeferred<Unit>()
+    private val pluginScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
@@ -57,7 +66,7 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
         defaultArtworkChannel.setMessageHandler { message, result -> run {
                 val array = message!!.array();
                 val image = BitmapFactory.decodeByteArray(array, 0, array.size);
-                service.setDefaultArtwork(image)
+                service?.setDefaultArtwork(image)
                 result.reply(null)
             }
         }
@@ -65,11 +74,11 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
         // Channel for metadata artwork
         metadataArtworkChannel = BasicMessageChannel(flutterPluginBinding.binaryMessenger, "radio_player/getArtwork", BinaryCodec.INSTANCE)
         metadataArtworkChannel.setMessageHandler { message, result -> run {
-                if (service.metadataArtwork == null) {
+                if (service?.metadataArtwork == null) {
                     result.reply(null)
                 } else {
                     val stream = ByteArrayOutputStream()
-                    service.metadataArtwork!!.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+                    service?.metadataArtwork!!.compress(Bitmap.CompressFormat.JPEG, 100, stream)
                     val array = stream.toByteArray();
                     val byteBuffer = ByteBuffer.allocateDirect(array.size);
                     byteBuffer.put(array)
@@ -90,35 +99,42 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
         metadataChannel.setStreamHandler(null)
         defaultArtworkChannel.setMessageHandler(null)
         metadataArtworkChannel.setMessageHandler(null)
+        pluginScope.cancel()
         context.unbindService(serviceConnection)
         context.stopService(intent)
+        service = null
     }
 
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
         when (call.method) {
             "set" -> {
-                val args = call.arguments<ArrayList<String>>()!!
-                service.setMediaItem(args[0], args[1])
+                pluginScope.launch {
+                    Log.d("pluginScope", "Waiting for RadioPlayerService to start.")
+                    serviceStartedSignal.await()
+                    Log.d("pluginScope", "RadioPlayerService started successfully.")
+                    val args = call.arguments<ArrayList<String>>()!!
+                    service?.setMediaItem(args[0], args[1])
+                }
             }
             "play" -> {
-                service.play()
+                service?.play()
             }
             "stop" -> {
-                service.stop()
+                service?.stop()
             }
             "pause" -> {
-                service.pause()
+                service?.pause()
             }
             "metadata" -> {
                 val metadata = call.arguments<ArrayList<String>>()!!
-                service.setMetadata(metadata)
+                service?.setMetadata(metadata)
             }
             "itunes_artwork_parser" -> {
                 val enable = call.arguments<Boolean>()!!
-                service.itunesArtworkParser = enable
+                service?.itunesArtworkParser = enable
             }
             "ignore_icy" -> {
-                service.ignoreIcy = true
+                service?.ignoreIcy = true
             }
             else -> {
                 result.notImplemented()
@@ -133,6 +149,10 @@ class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
         override fun onServiceConnected(componentName: ComponentName, iBinder: IBinder) {
             val binder = iBinder as RadioPlayerService.LocalBinder
             service = binder.getService()
+
+            if (serviceStartedSignal.isActive) {
+                serviceStartedSignal.complete(Unit)
+            }
         }
 
         // Called when the connection with the service disconnects unexpectedly.
