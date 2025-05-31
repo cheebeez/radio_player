@@ -5,7 +5,6 @@
 *.swp
 .DS_Store
 .atom/
-.cxx/
 .build/
 .buildlog/
 .history
@@ -44,4 +43,3 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-

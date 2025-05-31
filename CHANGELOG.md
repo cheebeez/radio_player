@@ -1,6 +1,7 @@
-## 1.7.1
+## 2.0.0
 
-* Remove unnecessary import causing build error.
+* Migrate to media3
+* Minimum iOS deployment target raised to 15.0.
 
 ## 1.7.0
 
