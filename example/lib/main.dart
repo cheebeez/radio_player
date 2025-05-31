@@ -1,114 +1,137 @@
 /*
- *  main.dart
+ * main.dart
  *
- *  Created by Ilia Chirkunov <xc@yar.net> on 28.12.2020.
+ * Copyright (c) 2020-2025 Ilia Chirkunov <contact@cheebeez.com>
+ *
+ * This source code is licensed under the CC BY-NC-SA 4.0.
+ * See https://creativecommons.org/licenses/by-nc-sa/4.0/
  */
 
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:radio_player/radio_player.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(MyApp());
+  runApp(RadioPlayerApp());
 }
 
-class MyApp extends StatefulWidget {
+class RadioPlayerApp extends StatefulWidget {
+  const RadioPlayerApp({super.key});
+
   @override
-  _MyAppState createState() => _MyAppState();
+  State<RadioPlayerApp> createState() => _RadioPlayerAppState();
 }
 
-class _MyAppState extends State<MyApp> {
-  RadioPlayer _radioPlayer = RadioPlayer();
-  bool isPlaying = false;
-  List<String>? metadata;
+class _RadioPlayerAppState extends State<RadioPlayerApp> {
+  final _radioPlayer = RadioPlayer();
+  bool _isPlaying = false;
+  List<String>? _metadata;
+
+  StreamSubscription? _stateSubscription;
+  StreamSubscription? _metadataSubscription;
 
   @override
   void initState() {
     super.initState();
-    initRadioPlayer();
-  }
 
-  void initRadioPlayer() {
     _radioPlayer.setChannel(
       title: 'Radio Player',
       url: 'http://stream-uk1.radioparadise.com/aac-320',
       imagePath: 'assets/cover.jpg',
     );
 
-    _radioPlayer.stateStream.listen((value) {
-      setState(() {
-        isPlaying = value;
-      });
+    _stateSubscription = _radioPlayer.stateStream.listen((isPlaying) {
+      setState(() => _isPlaying = isPlaying);
     });
 
-    _radioPlayer.metadataStream.listen((value) {
-      setState(() {
-        metadata = value;
-      });
+    _metadataSubscription = _radioPlayer.metadataStream.listen((metadata) {
+      setState(() => _metadata = metadata);
     });
+  }
+
+  @override
+  void dispose() {
+    _stateSubscription?.cancel();
+    _metadataSubscription?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text('Radio Player'),
-        ),
+        appBar: AppBar(centerTitle: true, title: const Text('Radio Player')),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              FutureBuilder(
-                future: _radioPlayer.getArtworkImage(),
-                builder: (BuildContext context, AsyncSnapshot snapshot) {
-                  Image artwork;
-                  if (snapshot.hasData) {
-                    artwork = snapshot.data;
-                  } else {
-                    artwork = Image.asset(
-                      'assets/cover.jpg',
-                      fit: BoxFit.cover,
-                    );
-                  }
-                  return Container(
-                    height: 180,
-                    width: 180,
-                    child: ClipRRect(
-                      child: artwork,
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  );
-                },
-              ),
+              Artwork(data: _radioPlayer.artworkData),
               SizedBox(height: 20),
-              Text(
-                metadata?[0] ?? 'Metadata',
-                softWrap: false,
-                overflow: TextOverflow.fade,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
-              ),
-              Text(
-                metadata?[1] ?? '',
-                softWrap: false,
-                overflow: TextOverflow.fade,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
+              Track(artist: _metadata?[0], title: _metadata?[1]),
               SizedBox(height: 20),
             ],
           ),
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            isPlaying ? _radioPlayer.pause() : _radioPlayer.play();
+            _isPlaying ? _radioPlayer.pause() : _radioPlayer.play();
           },
           tooltip: 'Control button',
           child: Icon(
-            isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
           ),
         ),
       ),
+    );
+  }
+}
+
+class Artwork extends StatelessWidget {
+  const Artwork({super.key, required this.data});
+
+  final Uint8List? data;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 180,
+      width: 180,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10.0),
+        child:
+            data == null
+                ? Image.asset('assets/cover.jpg', fit: BoxFit.cover)
+                : Image.memory(data!, key: UniqueKey(), fit: BoxFit.cover),
+      ),
+    );
+  }
+}
+
+class Track extends StatelessWidget {
+  const Track({super.key, this.artist, this.title});
+
+  final String? artist;
+  final String? title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          title ?? 'Metadata',
+          softWrap: false,
+          overflow: TextOverflow.fade,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+        Text(
+          artist ?? '',
+          softWrap: false,
+          overflow: TextOverflow.fade,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+      ],
     );
   }
 }

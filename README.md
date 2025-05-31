@@ -11,7 +11,7 @@ To use this package, add `radio_player` as a dependency in your `pubspec.yaml` f
 
 ```yaml
 dependencies:
-  radio_player: ^1.7.1
+  radio_player: ^2.0.0
 ```
 
 By default iOS forbids loading from non-https url. To cancel this restriction edit your .plist and add:
@@ -82,10 +82,17 @@ radioPlayer.metadataStream.listen((value) {
 Image from metadata can be retrieved using `getArtworkImage()`
 
 ## Requirements 
-- iOS: SDK 10.0 or later
+- iOS: 15.0 or later
 - Android: API Level 23 or later
 
-## Contributing
+## Reporting Issues
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-Please make sure to update tests as appropriate.
+Before submitting an issue, please:
+
+1.  **Check the example application:** Verify if the problem you're experiencing also occurs in the `example` app provided with this plugin. This helps determine if the issue is with the plugin itself or your specific implementation.
+2.  **Provide a minimal reproducible example:** If the issue persists or is not reproducible in the example, please include a small, self-contained code snippet that demonstrates the problem. 
+
+This information will greatly help in diagnosing and resolving your issue efficiently.
+
+## License
+This project is licensed under the [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).

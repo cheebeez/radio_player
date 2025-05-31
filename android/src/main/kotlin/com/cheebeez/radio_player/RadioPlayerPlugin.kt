@@ -1,197 +1,207 @@
 /*
- *  RadioPlayerPlugin.kt
+ * RadioPlayerPlugin.kt
  *
- *  Created by Ilia Chirkunov <xc@yar.net> on 28.12.2020.
+ * Copyright (c) 2020-2025 Ilia Chirkunov <contact@cheebeez.com>
+ *
+ * This source code is licensed under the CC BY-NC-SA 4.0.
+ * See https://creativecommons.org/licenses/by-nc-sa/4.0/
  */
 
 package com.cheebeez.radio_player
 
+import android.content.ComponentName
+import android.content.Context
+import android.os.Bundle
+import android.util.Log
 import androidx.annotation.NonNull
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.core.content.ContextCompat
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.BinaryMessenger
-import io.flutter.plugin.common.EventChannel
-import io.flutter.plugin.common.EventChannel.EventSink
-import io.flutter.plugin.common.EventChannel.StreamHandler
-import io.flutter.plugin.common.BasicMessageChannel
-import io.flutter.plugin.common.BinaryCodec
-import java.nio.ByteBuffer
-import java.io.ByteArrayOutputStream
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.Context
-import android.content.ServiceConnection
-import android.content.ComponentName
-import android.content.BroadcastReceiver
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.os.IBinder
-import com.google.android.exoplayer2.util.Util
 
-/** RadioPlayerPlugin */
-class RadioPlayerPlugin : FlutterPlugin, MethodCallHandler {
+/// The main plugin class for handling communication between Flutter and native Android.
+class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
+    private val TAG = "RadioPlayerPlugin"
     private lateinit var context: Context
-    private lateinit var channel: MethodChannel
-    private lateinit var stateChannel: EventChannel
-    private lateinit var metadataChannel: EventChannel
-    private lateinit var defaultArtworkChannel: BasicMessageChannel<ByteBuffer>
-    private lateinit var metadataArtworkChannel: BasicMessageChannel<ByteBuffer>
-    private lateinit var intent: Intent
-    private lateinit var service: RadioPlayerService
 
+    // Method Channel for Flutter to native calls.
+    private lateinit var methodChannel: MethodChannel
+
+    // Controllers for managing EventChannel communication.
+    private lateinit var stateEventsController: StateEventsController
+    private lateinit var metadataEventsController: MetadataEventsController
+
+    // Coroutine scope for managing plugin-specific coroutines.
+    private val pluginScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+
+    // Media Controller for interacting with the MediaSession.
+    private var mediaController: MediaController? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private var controllerReadyDeferred = CompletableDeferred<MediaController>()
+
+    /// Called when the plugin is attached to the Flutter engine.
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "radio_player")
-        channel.setMethodCallHandler(this)
 
-        stateChannel = EventChannel(flutterPluginBinding.binaryMessenger, "radio_player/stateEvents")
-        stateChannel.setStreamHandler(stateStreamHandler)
-        metadataChannel = EventChannel(flutterPluginBinding.binaryMessenger, "radio_player/metadataEvents")
-        metadataChannel.setStreamHandler(metadataStreamHandler)
+        // Initialize Method Channel for communication from Flutter.
+        methodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "radio_player")
+        methodChannel.setMethodCallHandler(this)
 
-        // Channel for default artwork
-        defaultArtworkChannel = BasicMessageChannel(flutterPluginBinding.binaryMessenger, "radio_player/setArtwork", BinaryCodec.INSTANCE)
-        defaultArtworkChannel.setMessageHandler { message, result -> run {
-                val array = message!!.array();
-                val image = BitmapFactory.decodeByteArray(array, 0, array.size);
-                service.setDefaultArtwork(image)
-                result.reply(null)
-            }
-        }
+        // Initialize Event Channel Controllers.
+        stateEventsController = StateEventsController()
+        metadataEventsController = MetadataEventsController()
 
-        // Channel for metadata artwork
-        metadataArtworkChannel = BasicMessageChannel(flutterPluginBinding.binaryMessenger, "radio_player/getArtwork", BinaryCodec.INSTANCE)
-        metadataArtworkChannel.setMessageHandler { message, result -> run {
-                if (service.metadataArtwork == null) {
-                    result.reply(null)
-                } else {
-                    val stream = ByteArrayOutputStream()
-                    service.metadataArtwork!!.compress(Bitmap.CompressFormat.JPEG, 100, stream)
-                    val array = stream.toByteArray();
-                    val byteBuffer = ByteBuffer.allocateDirect(array.size);
-                    byteBuffer.put(array)
-                    result.reply(byteBuffer)
+        // Attach Event Channel Controllers to the binary messenger.
+        stateEventsController.attach(flutterPluginBinding.binaryMessenger)
+        metadataEventsController.attach(flutterPluginBinding.binaryMessenger)
+    }
+
+    /// Handles method calls from the Flutter side.
+    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        pluginScope.launch {
+            val controller = ensureControllerInitialized()
+
+            when (call.method) {
+                "setStation" -> {
+                    val title = call.argument<String>("title")!!
+                    val url = call.argument<String>("url")!!
+                    val imageData = call.argument<ByteArray?>("image_data")
+
+                    val args = Bundle().apply {
+                        putString("title", title)
+                        putString("url", url)
+                        putByteArray("image_data", imageData)
+                    }
+                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_STATION, Bundle.EMPTY), args)
+                    result.success(null)
+                }
+                "play" -> {
+                    controller.play()
+                    result.success(null)
+                }
+                "pause" -> {
+                    controller.pause()
+                    result.success(null)
+                }
+                "stop" -> {
+                    controller.stop()
+                    result.success(null)
+                }
+                "setCustomMetadata" -> {
+                    val artist = call.argument<String>("artist")
+                    val title = call.argument<String>("title")
+                    val artworkUrl = call.argument<String>("artworkUrl")
+
+                    val args = Bundle().apply {
+                        putString("artist", artist)
+                        putString("title", title)
+                        putString("artworkUrl", artworkUrl)
+                    }
+                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_CUSTOM_METADATA, Bundle.EMPTY), args)
+                    result.success(null)
+                }
+                "setItunesArtworkParsing" -> {
+                    val enable = call.arguments<Boolean>()!!
+                    val args = Bundle().apply { putBoolean("enable", enable) }
+                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_ITUNES_ARTWORK_PARSING, Bundle()), args)
+                    result.success(null)
+                }
+                "setIgnoreIcyMetadata" -> {
+                    val ignoreIcy = call.arguments<Boolean>()!!
+                    val args = Bundle().apply { putBoolean("ignore_icy", ignoreIcy) }
+                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_IGNORE_ICY, Bundle()), args)
+                    result.success(null)
+                }
+                else -> {
+                    result.notImplemented()
                 }
             }
         }
-
-        // Start service
-        intent = Intent(context, RadioPlayerService::class.java)
-        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT)
-        context.startService(intent)
     }
 
+    /// Called when the plugin is detached from the Flutter engine.
     override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-        channel.setMethodCallHandler(null)
-        stateChannel.setStreamHandler(null)
-        metadataChannel.setStreamHandler(null)
-        defaultArtworkChannel.setMessageHandler(null)
-        metadataArtworkChannel.setMessageHandler(null)
-        context.unbindService(serviceConnection)
-        context.stopService(intent)
-    }
+        // Clear the method call handler for the MethodChannel.
+        methodChannel.setMethodCallHandler(null)
+        
+        // Detach Event Channel Controllers to clean up their resources.
+        stateEventsController.detach()
+        metadataEventsController.detach()
 
-    override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-        when (call.method) {
-            "set" -> {
-                val args = call.arguments<ArrayList<String>>()!!
-                service.setMediaItem(args[0], args[1])
-            }
-            "play" -> {
-                service.play()
-            }
-            "stop" -> {
-                service.stop()
-            }
-            "pause" -> {
-                service.pause()
-            }
-            "metadata" -> {
-                val metadata = call.arguments<ArrayList<String>>()!!
-                service.setMetadata(metadata)
-            }
-            "itunes_artwork_parser" -> {
-                val enable = call.arguments<Boolean>()!!
-                service.itunesArtworkParser = enable
-            }
-            "ignore_icy" -> {
-                service.ignoreIcy = true
-            }
-            else -> {
-                result.notImplemented()
-            }
-        }
+        // Cancel all coroutines started by this plugin.
+        pluginScope.cancel()
 
-        result.success(1)
-    }
+        // Release the MediaController.
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        mediaController = null
+        controllerFuture = null
 
-    /** Defines callbacks for service binding, passed to bindService() */
-    private val serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(componentName: ComponentName, iBinder: IBinder) {
-            val binder = iBinder as RadioPlayerService.LocalBinder
-            service = binder.getService()
-            service.context = context
-        }
-
-        // Called when the connection with the service disconnects unexpectedly.
-        // The service should be running in a different process.
-        override fun onServiceDisconnected(componentName: ComponentName) {
+        // Cancel the deferred if it's still active.
+        if (controllerReadyDeferred.isActive) {
+            controllerReadyDeferred.cancel()
         }
     }
 
-    /** Handler for playback state changes, passed to setStreamHandler() */
-    private var stateStreamHandler = object : StreamHandler {
-        private var eventSink: EventSink? = null
-
-        override fun onListen(arguments: Any?, events: EventSink?) {
-            eventSink = events
-            LocalBroadcastManager.getInstance(context).registerReceiver(broadcastReceiver, 
-                    IntentFilter(RadioPlayerService.ACTION_STATE_CHANGED))
+    /// Ensures the MediaController is initialized and returns it.
+    private suspend fun ensureControllerInitialized(): MediaController {
+        // Return immediately if MediaController is already initialized.
+        if (mediaController != null) {
+            return mediaController!!
         }
 
-        override fun onCancel(arguments: Any?) {
-            eventSink = null
-            LocalBroadcastManager.getInstance(context).unregisterReceiver(broadcastReceiver)
+        // If initialization is already in progress, await its completion.
+        if (controllerFuture != null && !controllerReadyDeferred.isCompleted) {
+            return controllerReadyDeferred.await()
         }
 
-        // Broadcast receiver for playback state changes, passed to registerReceiver()
-        private var broadcastReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent != null) {
-                    val received = intent.getBooleanExtra(RadioPlayerService.ACTION_STATE_CHANGED_EXTRA, false)
-                    eventSink?.success(received)
+        // If not initialized and no future exists, create the MediaController.
+        controllerReadyDeferred = CompletableDeferred()
+        val sessionToken = SessionToken(context, ComponentName(context, RadioPlayerService::class.java))
+        val future = MediaController.Builder(context, sessionToken).buildAsync()
+        controllerFuture = future
+
+        // Add a listener to handle the result of the asynchronous build.
+        future.addListener(
+            {
+                try {
+                    // Successfully connected to the MediaController.
+                    val controller = future.get()
+                    mediaController = controller
+
+                    // Pass the new controller to EventChannelControllers.
+                    stateEventsController.setMediaController(controller)
+                    metadataEventsController.setMediaController(controller)
+
+                    // Complete the deferred with the new controller.
+                    if (!controllerReadyDeferred.isCompleted) {
+                        controllerReadyDeferred.complete(controller)
+                    }
+                } catch (e: Exception) {
+                    // Handle errors during MediaController connection.
+                    if (!controllerReadyDeferred.isCompleted) {
+                        controllerReadyDeferred.completeExceptionally(e)
+                    }
+                    // Reset future so a new attempt can be made.
+                    controllerFuture = null 
                 }
-            }
-        }
-    }
+            },
+            // Run listener on the main thread.
+            ContextCompat.getMainExecutor(context) 
+        )
 
-    /** Handler for new metadata, passed to setStreamHandler() */
-    private var metadataStreamHandler = object : StreamHandler {
-        private var eventSink: EventSink? = null
-
-        override fun onListen(arguments: Any?, events: EventSink?) {
-            eventSink = events
-            LocalBroadcastManager.getInstance(context).registerReceiver(broadcastReceiver, 
-                    IntentFilter(RadioPlayerService.ACTION_NEW_METADATA))
-        }
-
-        override fun onCancel(arguments: Any?) {
-            eventSink = null
-            LocalBroadcastManager.getInstance(context).unregisterReceiver(broadcastReceiver)
-        }
-
-        // Broadcast receiver for new metadata, passed to registerReceiver()
-        private var broadcastReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent != null) {
-                    val received = intent.getStringArrayListExtra(RadioPlayerService.ACTION_NEW_METADATA_EXTRA)
-                    eventSink?.success(received)
-                }
-            }
-        }
+        // Await completion (success or error).
+        return controllerReadyDeferred.await() 
     }
 }
+
+
