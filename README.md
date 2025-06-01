@@ -87,12 +87,8 @@ Image from metadata can be retrieved using `getArtworkImage()`
 
 ## Reporting Issues
 
-Before submitting an issue, please:
-
-1.  **Check the example application:** Verify if the problem you're experiencing also occurs in the `example` app provided with this plugin. This helps determine if the issue is with the plugin itself or your specific implementation.
-2.  **Provide a minimal reproducible example:** If the issue persists or is not reproducible in the example, please include a small, self-contained code snippet that demonstrates the problem. 
-
-This information will greatly help in diagnosing and resolving your issue efficiently.
+Before submitting an issue, please **check the example application** provided with this plugin.
+Verify if the problem you're experiencing also occurs there. This helps determine if the issue is with the plugin itself or your specific implementation.
 
 ## License
 This project is licensed under the [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
