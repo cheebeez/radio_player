@@ -85,10 +85,5 @@ Image from metadata can be retrieved using `getArtworkImage()`
 - iOS: 15.0 or later
 - Android: API Level 23 or later
 
-## Reporting Issues
-
-Before submitting an issue, please **check the example application** provided with this plugin.
-Verify if the problem you're experiencing also occurs there. This helps determine if the issue is with the plugin itself or your specific implementation.
-
 ## License
 This project is licensed under the [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
