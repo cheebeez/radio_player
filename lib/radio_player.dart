@@ -8,8 +8,10 @@
  */
 
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:radio_player/models/metadata.dart';
+
+export 'package:radio_player/models/metadata.dart';
 
 class RadioPlayer {
   static const _methodChannel = MethodChannel('radio_player');
@@ -17,8 +19,7 @@ class RadioPlayer {
   static const _stateEvents = EventChannel('radio_player/stateEvents');
 
   Stream<bool>? _stateStream;
-  Stream<List<String>>? _metadataStream;
-  Uint8List? artworkData;
+  Stream<Metadata>? _metadataStream;
 
   /// Set new streaming URL.
   Future<void> setChannel({
@@ -29,7 +30,6 @@ class RadioPlayer {
     //bool enableOnlineArtworkLookup = false,
   }) async {
     Uint8List? imageData;
-    artworkData = null;
 
     if (imagePath != null) {
       final byteData =
@@ -80,17 +80,6 @@ class RadioPlayer {
     await _methodChannel.invokeMethod('setCustomMetadata', metadataMap);
   }
 
-  /// Returns the album cover if it has already been downloaded.
-  Future<Image?> getArtworkImage() async {
-    Image? image;
-
-    if (artworkData != null) {
-      image = Image.memory(artworkData!, key: UniqueKey(), fit: BoxFit.cover);
-    }
-
-    return image;
-  }
-
   /// Get the playback state stream.
   Stream<bool> get stateStream {
     _stateStream ??= _stateEvents.receiveBroadcastStream().map<bool>(
@@ -101,15 +90,9 @@ class RadioPlayer {
   }
 
   /// Get the metadata stream.
-  Stream<List<String>> get metadataStream {
-    _metadataStream ??= _metadataEvents.receiveBroadcastStream().map((rawMap) {
-      if (rawMap.containsKey('artworkData') && rawMap['artworkData'] != null) {
-        artworkData = rawMap['artworkData'] as Uint8List?;
-      } else {
-        artworkData = null;
-      }
-
-      return [rawMap['artist'], rawMap['title'], rawMap['artworkUrl']];
+  Stream<Metadata> get metadataStream {
+    _metadataStream ??= _metadataEvents.receiveBroadcastStream().map((value) {
+      return Metadata.fromMap(value as Map<dynamic, dynamic>);
     });
 
     return _metadataStream!;

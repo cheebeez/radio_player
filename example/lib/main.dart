@@ -27,7 +27,7 @@ class RadioPlayerApp extends StatefulWidget {
 class _RadioPlayerAppState extends State<RadioPlayerApp> {
   final _radioPlayer = RadioPlayer();
   bool _isPlaying = false;
-  List<String>? _metadata;
+  Metadata? _metadata;
 
   StreamSubscription? _stateSubscription;
   StreamSubscription? _metadataSubscription;
@@ -67,9 +67,9 @@ class _RadioPlayerAppState extends State<RadioPlayerApp> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Artwork(data: _radioPlayer.artworkData),
+              Artwork(data: _metadata?.artworkData),
               SizedBox(height: 20),
-              Track(artist: _metadata?[0], title: _metadata?[1]),
+              Track(artist: _metadata?.artist, title: _metadata?.title),
               SizedBox(height: 20),
             ],
           ),
