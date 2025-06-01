@@ -29,9 +29,9 @@ class MetadataEventsController : EventChannelController, Player.Listener {
         }
 
         val metadataMap = mapOf(
-            "artist" to (mediaMetadata.artist?.toString() ?: ""),
-            "title" to (mediaMetadata.title?.toString() ?: ""),
-            "artworkUrl" to (mediaMetadata.artworkUri?.toString() ?: ""),
+            "artist" to mediaMetadata.artist?.toString(),
+            "title" to mediaMetadata.title?.toString(),
+            "artworkUrl" to mediaMetadata.artworkUri?.toString(),
             "artworkData" to mediaMetadata.artworkData
         )
         eventSink?.success(metadataMap)

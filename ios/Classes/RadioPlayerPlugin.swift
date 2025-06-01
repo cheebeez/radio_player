@@ -53,9 +53,9 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
                 result(nil)
             case "setCustomMetadata":
                 let args = call.arguments as! [String: String?]
-                let artist = args["artist"] as? String ?? ""
-                let songTitle = args["title"] as? String ?? ""
-                let artworkUrl = args["artworkUrl"] as? String ?? ""
+                let artist = args["artist"] as? String
+                let songTitle = args["title"] as? String
+                let artworkUrl = args["artworkUrl"] as? String
 
                 player.setMetadata(artist: artist, songTitle: songTitle, artworkUrl: artworkUrl)
                 result(nil)

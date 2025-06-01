@@ -28,7 +28,7 @@ class MetadataStreamHandler: NSObject, FlutterStreamHandler, RadioPlayerMetadata
     }
 
     /// Relays metadata updates from the player service to Flutter.
-    func radioPlayerDidUpdateMetadata(artist: String, title: String, artworkUrl: String?, artworkData: Data?) {
+    func radioPlayerDidUpdateMetadata(artist: String?, title: String?, artworkUrl: String?, artworkData: Data?) {
         let metadata: [String: Any?] = [
             "artist": artist,
             "title": title,

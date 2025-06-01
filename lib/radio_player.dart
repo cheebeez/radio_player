@@ -70,11 +70,15 @@ class RadioPlayer {
   }
 
   /// Set custom metadata.
-  Future<void> setCustomMetadata(List<String> metadata) async {
-    Map<String, String> metadataMap = {
-      'artist': metadata[0],
-      'title': metadata[1],
-      'artworkUrl': metadata[2],
+  Future<void> setCustomMetadata(
+    String? artist,
+    String? title,
+    String? artworkUrl,
+  ) async {
+    Map<String, String?> metadataMap = {
+      'artist': artist,
+      'title': title,
+      'artworkUrl': artworkUrl,
     };
 
     await _methodChannel.invokeMethod('setCustomMetadata', metadataMap);

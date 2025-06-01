@@ -27,6 +27,8 @@ struct ArtworkUtils {
 
     /// Fetches an artwork URL from iTunes API for the given artist and track.
     static func parseArtworkFromItunes(artist: String, track: String) async -> String {
+        if artist.isEmpty && track.isEmpty { return "" }
+
         guard let term = (artist + " - " + track).addingPercentEncoding(withAllowedCharacters: .alphanumerics),
               let url = URL(string: "https://itunes.apple.com/search?term=\(term)&limit=1")
         else { return "" }

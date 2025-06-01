@@ -16,5 +16,5 @@ protocol RadioPlayerStateDelegate: AnyObject {
 
 /// Delegate protocol for radio player metadata updates.
 protocol RadioPlayerMetadataDelegate: AnyObject {
-    func radioPlayerDidUpdateMetadata(artist: String, title: String, artworkUrl: String?, artworkData: Data?)
+    func radioPlayerDidUpdateMetadata(artist: String?, title: String?, artworkUrl: String?, artworkData: Data?)
 }

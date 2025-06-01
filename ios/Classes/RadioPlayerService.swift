@@ -86,30 +86,31 @@ class RadioPlayerService: NSObject {
     }
 
     /// Updates the player's metadata with new track information.
-    func setMetadata(artist: String, songTitle: String, artworkUrl: String?) {
-        let trimmedArtist = artist.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedSongTitle = songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        var trimmedArtworkUrl = artworkUrl?.trimmingCharacters(in: .whitespacesAndNewlines)
+    func setMetadata(artist: String?, songTitle: String?, artworkUrl: String?) {
+        let currentArtist = artist.nilIfEmpty()
+        let currentSongTitle = songTitle.nilIfEmpty()
+        var currentArtworkUrl = artworkUrl.nilIfEmpty()
 
         // Check if metadata has actually changed.
-        let currentMetadataHash = trimmedArtist + trimmedSongTitle
-        if currentMetadataHash == metadataHash { return }
-        metadataHash = currentMetadataHash
+        let newMetadataHash = (currentArtist ?? "_nil_") + (currentSongTitle ?? "_nil_")
+        if newMetadataHash == metadataHash { return }
+        metadataHash = newMetadataHash
 
         Task {
             // Parse artwork url from iTunes.
-            if (itunesArtworkParser && (artworkUrl ?? "").isEmpty) {
-                trimmedArtworkUrl = await ArtworkUtils.parseArtworkFromItunes(artist: trimmedArtist, track: trimmedSongTitle)
+            if (itunesArtworkParser && currentArtworkUrl == nil) {
+                currentArtworkUrl = await ArtworkUtils.parseArtworkFromItunes(
+                        artist: currentArtist ?? "", track: currentSongTitle ?? "")
             }
 
             // Download artwork.
-            var loadedArtwork = await ArtworkUtils.downloadImage(from: trimmedArtworkUrl)
+            var loadedArtwork = await ArtworkUtils.downloadImage(from: currentArtworkUrl)
             loadedArtwork = loadedArtwork ?? defaultArtwork
 
             // Update the now playing info.
             var nowPlayingInfo: [String: Any] = [
-                MPMediaItemPropertyArtist: trimmedArtist,
-                MPMediaItemPropertyTitle: trimmedSongTitle
+                MPMediaItemPropertyArtist: currentArtist,
+                MPMediaItemPropertyTitle: currentSongTitle
             ]
 
             if let image = loadedArtwork {
@@ -121,9 +122,9 @@ class RadioPlayerService: NSObject {
 
             // Send metadata to client.
             metadataDelegate?.radioPlayerDidUpdateMetadata(
-                artist: trimmedArtist ?? "",
-                title: trimmedSongTitle ?? "",
-                artworkUrl: trimmedArtworkUrl ?? "",
+                artist: currentArtist,
+                title: currentSongTitle,
+                artworkUrl: currentArtworkUrl,
                 artworkData: loadedArtwork?.jpegData(compressionQuality: 0.8)
             )
         }
@@ -206,17 +207,26 @@ extension RadioPlayerService: AVPlayerItemMetadataOutputPushDelegate {
     func metadataOutput(_ output: AVPlayerItemMetadataOutput, didOutputTimedMetadataGroups groups: [AVTimedMetadataGroup], from track: AVPlayerItemTrack?) {
         if ignoreIcy { return }
 
-        let rawMetadata = groups.first.map({ $0.items })
+        guard let firstGroup = groups.first, !firstGroup.items.isEmpty else { return }
+        let metaItems = firstGroup.items
 
-        var artist = ""
-        guard var songTitle = rawMetadata?.first?.stringValue else { return }
-        let artworkUrlFromIcy = rawMetadata!.count > 1 ? rawMetadata![1].stringValue! : ""
+        guard var streamTitle: String = metaItems.first?.stringValue?.nilIfEmpty() else { return }
+
+        var artist: String? = nil
+        var songTitle: String? = nil
+        var artworkUrlFromIcy: String? = nil
+
+        if metaItems.count > 1 {
+            artworkUrlFromIcy = metaItems[1].stringValue?.nilIfEmpty()
+        }
 
         // Check if songTitle is in "Artist - Title" format
-        let parts = songTitle.components(separatedBy: " - ")
+        let parts = streamTitle.components(separatedBy: " - ")
         if parts.count == 2 {
-            artist = parts[0]
-            songTitle = parts[1]
+            artist = parts[0].nilIfEmpty()
+            songTitle = parts[1].nilIfEmpty()
+        } else {
+            songTitle = streamTitle.nilIfEmpty() // streamTitle is already nilIfEmpty checked
         }
 
         // Update metadata

@@ -159,7 +159,7 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
     }
 
     /// Updates the player's metadata with new track information.
-    fun setMetadata(artist: String, songTitle: String, artworkUrl: String?) {
+    fun setMetadata(artist: String?, songTitle: String?, artworkUrl: String?) {
 
         // Check if metadata has actually changed
         if (artist == currentArtistMeta && songTitle == currentSongTitleMeta) {
@@ -173,7 +173,7 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
         serviceScope.launch {
             // Optionally parse artwork URL from iTunes.
             if (itunesArtworkParser && artworkUrl.isNullOrEmpty())
-                currentArtworkUrlMeta = parseArtworkFromItunes(artist, songTitle)
+                currentArtworkUrlMeta = parseArtworkFromItunes(artist ?: "", songTitle ?: "")
 
             // Download artwork image if URL is available.
             metadataArtwork = if (currentArtworkUrlMeta != null) downloadImage(currentArtworkUrlMeta) else null
@@ -183,8 +183,8 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
 
             val newMediaMetadataBuilder = MediaMetadata.Builder()
                 .setStation(currentMediaItem!!.mediaMetadata.station)
-                .setArtist(artist.ifEmpty { null }) 
-                .setTitle(songTitle.ifEmpty { defaultTitle })
+                .setArtist(artist) 
+                .setTitle(songTitle)
                 .setMediaType(MediaMetadata.MEDIA_TYPE_RADIO_STATION)
                 .setExtras(Bundle())
 
@@ -224,18 +224,21 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
         if (ignoreIcy || rawMetadata[0] !is IcyInfo) return
     
         val icyInfo: IcyInfo = rawMetadata[0] as IcyInfo
-        val streamTitle: String = icyInfo.title ?: return
-        if (streamTitle.length == 0) return
+        val streamTitle: String = icyInfo.title?.trim() ?: return
+        if (streamTitle.isEmpty()) return
 
-        var artist = ""
-        var songTitle = streamTitle.trim()
+        var artist: String? = null
+        var songTitle: String? = null
         val artworkUrlFromIcy: String? = icyInfo.url?.takeIf { it.isNotBlank() }
 
         // Check if songTitle is in "Artist - Title" format
         val parts = streamTitle.split(" - ", limit = 2)
+
         if (parts.size == 2) {
-            artist = parts[0].trim()
-            songTitle = parts[1].trim()
+            artist = parts[0].trim().takeIf { it.isNotEmpty() }
+            songTitle = parts[1].trim().takeIf { it.isNotEmpty() }
+        } else {
+            songTitle = streamTitle.takeIf { it.isNotEmpty() }
         }
  
         setMetadata(artist, songTitle, artworkUrlFromIcy)

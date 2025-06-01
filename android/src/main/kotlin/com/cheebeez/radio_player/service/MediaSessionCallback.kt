@@ -78,8 +78,8 @@ class MediaSessionCallback(private val radioPlayerService: RadioPlayerService) :
                 val artist = args.getString("artist")
                 val title = args.getString("title")
                 val artworkUrl = args.getString("artworkUrl")
-                
-                radioPlayerService.setMetadata(artist ?: "", title ?: "", artworkUrl ?: "")
+
+                radioPlayerService.setMetadata(artist, title, artworkUrl)
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
 

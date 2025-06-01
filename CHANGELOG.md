@@ -1,6 +1,10 @@
+## 2.1.0
+
+* 
+
 ## 2.0.0
 
-* Migrate to media3
+* Migrate to Android Media3
 * Minimum iOS deployment target raised to 15.0.
 
 ## 1.7.0
