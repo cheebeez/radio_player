@@ -31,6 +31,10 @@ class StateEventsController : EventChannelController, Player.Listener {
         eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
                 eventSink = events
+
+                if (mediaController != null) {
+                    mediaController?.addListener(this@StateEventsController)
+                }
             }
 
             override fun onCancel(arguments: Any?) {
@@ -45,7 +49,7 @@ class StateEventsController : EventChannelController, Player.Listener {
         this.mediaController?.removeListener(this@StateEventsController)
         this.mediaController = controller
 
-        if (eventSink != null) {
+        if (eventSink != null && mediaController != null) {
             this.mediaController?.addListener(this@StateEventsController)
         }
     }
@@ -53,8 +57,6 @@ class StateEventsController : EventChannelController, Player.Listener {
     /// Detaches the event channel and cleans up resources.
     override fun detach() {
         eventChannel.setStreamHandler(null)
-        mediaController?.removeListener(this@StateEventsController)
-        eventSink = null
         mediaController = null
     }
 }
