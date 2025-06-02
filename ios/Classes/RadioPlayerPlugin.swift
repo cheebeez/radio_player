@@ -39,18 +39,30 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
                 let title = args["title"] as! String
                 let url = args["url"] as! String
                 let imageData: Data? = (args["image_data"] as? FlutterStandardTypedData)?.data
+                let parseStreamMetadata = args["parseStreamMetadata"] as! Bool
+                let lookupOnlineArtwork = args["lookupOnlineArtwork"] as! Bool
 
-                player.setMediaItem(title: title, url: url, imageData: imageData)
+                player.setStation(
+                    title: title, 
+                    url: url, 
+                    imageData: imageData, 
+                    parseStreamMetadata: parseStreamMetadata, 
+                    lookupOnlineArtwork: lookupOnlineArtwork
+                )
                 result(nil)
+
             case "play":
                 player.play()
                 result(nil)
+
             case "pause":
                 player.pause()
                 result(nil)
+
             case "stop":
                 player.stop()
                 result(nil)
+
             case "setCustomMetadata":
                 let args = call.arguments as! [String: String?]
                 let artist = args["artist"] as? String
@@ -60,12 +72,6 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
                 player.setMetadata(artist: artist, songTitle: songTitle, artworkUrl: artworkUrl)
                 result(nil)
 
-            case "setItunesArtworkParsing":
-                player.itunesArtworkParser = call.arguments as! Bool
-                result(nil)
-            case "setIgnoreIcyMetadata":
-                player.ignoreIcy = call.arguments as! Bool
-                result(nil)
             default:
                 result(FlutterMethodNotImplemented)
         }

@@ -26,8 +26,8 @@ class RadioPlayer {
     required String title,
     required String url,
     String? imagePath,
-    //bool useIcyMetadata = true,
-    //bool enableOnlineArtworkLookup = false,
+    bool parseStreamMetadata = true,
+    bool lookupOnlineArtwork = false,
   }) async {
     Uint8List? imageData;
 
@@ -44,6 +44,8 @@ class RadioPlayer {
       'title': title,
       'url': url,
       'image_data': imageData,
+      'parseStreamMetadata': parseStreamMetadata,
+      'lookupOnlineArtwork': lookupOnlineArtwork,
     });
   }
 
@@ -57,16 +59,6 @@ class RadioPlayer {
 
   Future<void> pause() async {
     await _methodChannel.invokeMethod('pause');
-  }
-
-  /// Helps avoid conflicts with custom metadata.
-  Future<void> ignoreIcyMetadata([bool ignoreIcy = true]) async {
-    await _methodChannel.invokeMethod('setIgnoreIcyMetadata', ignoreIcy);
-  }
-
-  /// Parse album covers from iTunes.
-  Future<void> itunesArtworkParser(bool enable) async {
-    await _methodChannel.invokeMethod('setItunesArtworkParsing', enable);
   }
 
   /// Set custom metadata.

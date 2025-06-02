@@ -21,8 +21,8 @@ class RadioPlayerService: NSObject {
     weak var stateDelegate: RadioPlayerStateDelegate?
     weak var metadataDelegate: RadioPlayerMetadataDelegate?
 
-    var ignoreIcy: Bool = false
-    var itunesArtworkParser: Bool = false
+    var parseStreamMetadata: Bool = true
+    var lookupOnlineArtwork: Bool = false
 
     /// Initialization
     override init() {
@@ -59,7 +59,8 @@ class RadioPlayerService: NSObject {
         }
 
         // Sets up observers for system notifications like audio interruptions.
-        NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
+        NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, 
+                object: AVAudioSession.sharedInstance())
     }
 
     deinit {
@@ -68,14 +69,26 @@ class RadioPlayerService: NSObject {
         UIApplication.shared.endReceivingRemoteControlEvents()
     }
 
-     /// Sets the media item for playback.
-    func setMediaItem(title: String, url: String, imageData: Data?) {
+    /// Sets the media item for playback.
+    func setStation(title: String, url: String, imageData: Data?, parseStreamMetadata: Bool, lookupOnlineArtwork: Bool) {
         streamTitle = title
         streamUrl = url
         defaultArtwork = imageData != nil ? UIImage(data: imageData!) : nil
 
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = [MPMediaItemPropertyTitle: streamTitle, ]
+        // Update properties based on new parameters
+        self.parseStreamMetadata = parseStreamMetadata
+        self.lookupOnlineArtwork = lookupOnlineArtwork
 
+        // Update Now Playing Info with station title initially
+        var nowPlayingInfo: [String: Any] = [
+            MPMediaItemPropertyTitle: streamTitle,
+        ]
+        if let art = defaultArtwork {
+            nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: art.size, requestHandler: { _ in art })
+        }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+
+        //
         let playerItem = AVPlayerItem(url: URL(string: streamUrl)!)
         player.replaceCurrentItem(with: playerItem)
 
@@ -98,7 +111,7 @@ class RadioPlayerService: NSObject {
 
         Task {
             // Parse artwork url from iTunes.
-            if (itunesArtworkParser && currentArtworkUrl == nil) {
+            if (lookupOnlineArtwork && currentArtworkUrl == nil) {
                 currentArtworkUrl = await ArtworkUtils.parseArtworkFromItunes(
                         artist: currentArtist ?? "", track: currentSongTitle ?? "")
             }
@@ -134,7 +147,13 @@ class RadioPlayerService: NSObject {
     func play() {
          // If the player item is nil or has failed, try to set it up again.
         if player.currentItem == nil || player.currentItem?.isPlaybackBufferEmpty == true || player.currentItem?.status == .failed {
-             setMediaItem(title: streamTitle, url: streamUrl, imageData: defaultArtwork?.jpegData(compressionQuality: 1.0))
+            setStation(
+                title: streamTitle, 
+                url: streamUrl, 
+                imageData: defaultArtwork?.jpegData(compressionQuality: 1.0), 
+                parseStreamMetadata: self.parseStreamMetadata, 
+                lookupOnlineArtwork: self.lookupOnlineArtwork
+            )
         }
 
         player.play()
@@ -205,7 +224,7 @@ extension RadioPlayerService: AVPlayerItemMetadataOutputPushDelegate {
 
     /// Processes incoming ICY (stream) metadata.
     func metadataOutput(_ output: AVPlayerItemMetadataOutput, didOutputTimedMetadataGroups groups: [AVTimedMetadataGroup], from track: AVPlayerItemTrack?) {
-        if ignoreIcy { return }
+        if !parseStreamMetadata { return }
 
         guard let firstGroup = groups.first, !firstGroup.items.isEmpty else { return }
         let metaItems = firstGroup.items

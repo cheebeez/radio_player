@@ -76,11 +76,15 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                     val title = call.argument<String>("title")!!
                     val url = call.argument<String>("url")!!
                     val imageData = call.argument<ByteArray?>("image_data")
+                    val parseStreamMetadata = call.argument<Boolean>("parseStreamMetadata")!! 
+                    val lookupOnlineArtwork = call.argument<Boolean>("lookupOnlineArtwork")!!
 
                     val args = Bundle().apply {
                         putString("title", title)
                         putString("url", url)
                         putByteArray("image_data", imageData)
+                        putBoolean("parseStreamMetadata", parseStreamMetadata)
+                        putBoolean("lookupOnlineArtwork", lookupOnlineArtwork)
                     }
                     controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_STATION, Bundle.EMPTY), args)
                     result.success(null)
@@ -108,18 +112,6 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                         putString("artworkUrl", artworkUrl)
                     }
                     controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_CUSTOM_METADATA, Bundle.EMPTY), args)
-                    result.success(null)
-                }
-                "setItunesArtworkParsing" -> {
-                    val enable = call.arguments<Boolean>()!!
-                    val args = Bundle().apply { putBoolean("enable", enable) }
-                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_ITUNES_ARTWORK_PARSING, Bundle()), args)
-                    result.success(null)
-                }
-                "setIgnoreIcyMetadata" -> {
-                    val ignoreIcy = call.arguments<Boolean>()!!
-                    val args = Bundle().apply { putBoolean("ignore_icy", ignoreIcy) }
-                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_IGNORE_ICY, Bundle()), args)
                     result.success(null)
                 }
                 else -> {

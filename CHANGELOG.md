@@ -1,10 +1,11 @@
 ## 2.1.0
 
-* **BREAKING CHANGE**: Improved `setCustomMetadata` to fully support `null` values for `artist`, `title`, and `artworkUrl`
+* **BREAKING CHANGE**: Improved `setCustomMetadata` to fully support `null` values for `artist`, `title`, and `artworkUrl`.
+* **BREAKING CHANGE**: Moved settings for ICY metadata parsing and online artwork lookup into `setChannel` parameters.
 
 ## 2.0.0
 
-* Migrate to Android Media3
+* Migrate to Android Media3.
 * Minimum iOS deployment target raised to 15.0.
 
 ## 1.7.0
