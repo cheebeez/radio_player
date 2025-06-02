@@ -25,7 +25,6 @@ class RadioPlayerApp extends StatefulWidget {
 }
 
 class _RadioPlayerAppState extends State<RadioPlayerApp> {
-  final _radioPlayer = RadioPlayer();
   bool _isPlaying = false;
   Metadata? _metadata;
 
@@ -36,17 +35,17 @@ class _RadioPlayerAppState extends State<RadioPlayerApp> {
   void initState() {
     super.initState();
 
-    _radioPlayer.setChannel(
+    RadioPlayer.setStation(
       title: 'Radio Player',
       url: 'http://stream-uk1.radioparadise.com/aac-320',
-      imagePath: 'assets/cover.jpg',
+      logoAssetPath: 'assets/cover.jpg',
     );
 
-    _stateSubscription = _radioPlayer.stateStream.listen((isPlaying) {
+    _stateSubscription = RadioPlayer.stateStream.listen((isPlaying) {
       setState(() => _isPlaying = isPlaying);
     });
 
-    _metadataSubscription = _radioPlayer.metadataStream.listen((metadata) {
+    _metadataSubscription = RadioPlayer.metadataStream.listen((metadata) {
       setState(() => _metadata = metadata);
     });
   }
@@ -76,7 +75,7 @@ class _RadioPlayerAppState extends State<RadioPlayerApp> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            _isPlaying ? _radioPlayer.pause() : _radioPlayer.play();
+            _isPlaying ? RadioPlayer.pause() : RadioPlayer.play();
           },
           tooltip: 'Control button',
           child: Icon(

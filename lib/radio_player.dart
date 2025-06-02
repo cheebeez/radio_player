@@ -14,29 +14,36 @@ import 'package:radio_player/models/metadata.dart';
 export 'package:radio_player/models/metadata.dart';
 
 class RadioPlayer {
+  RadioPlayer._internal();
+
   static const _methodChannel = MethodChannel('radio_player');
   static const _metadataEvents = EventChannel('radio_player/metadataEvents');
   static const _stateEvents = EventChannel('radio_player/stateEvents');
 
-  Stream<bool>? _stateStream;
-  Stream<Metadata>? _metadataStream;
+  static Stream<bool>? _stateStream;
+  static Stream<Metadata>? _metadataStream;
 
-  /// Set new streaming URL.
-  Future<void> setChannel({
+  /// Sets the radio station with title, URL, and optional artwork.
+  static Future<void> setStation({
     required String title,
     required String url,
-    String? imagePath,
+    String? logoAssetPath,
+    String? logoNetworkUrl,
     bool parseStreamMetadata = true,
     bool lookupOnlineArtwork = false,
   }) async {
     Uint8List? imageData;
 
-    if (imagePath != null) {
-      final byteData =
-          imagePath.startsWith('http')
-              ? await NetworkAssetBundle(Uri.parse(imagePath)).load(imagePath)
-              : await rootBundle.load(imagePath);
-
+    // Attempt to load logo from local asset path if provided.
+    if (logoAssetPath != null) {
+      final byteData = await rootBundle.load(logoAssetPath);
+      imageData = byteData.buffer.asUint8List();
+    }
+    // Else, attempt to load logo from network URL if provided.
+    else if (logoNetworkUrl != null) {
+      final byteData = await NetworkAssetBundle(
+        Uri.parse(logoNetworkUrl),
+      ).load(logoNetworkUrl);
       imageData = byteData.buffer.asUint8List();
     }
 
@@ -49,20 +56,23 @@ class RadioPlayer {
     });
   }
 
-  Future<void> play() async {
+  /// Starts or resumes playback.
+  static Future<void> play() async {
     await _methodChannel.invokeMethod('play');
   }
 
-  Future<void> stop() async {
+  /// Stops playback and releases resources.
+  static Future<void> stop() async {
     await _methodChannel.invokeMethod('stop');
   }
 
-  Future<void> pause() async {
+  /// Pauses playback.
+  static Future<void> pause() async {
     await _methodChannel.invokeMethod('pause');
   }
 
-  /// Set custom metadata.
-  Future<void> setCustomMetadata(
+  /// Sets custom metadata for the current stream.
+  static Future<void> setCustomMetadata(
     String? artist,
     String? title,
     String? artworkUrl,
@@ -76,8 +86,8 @@ class RadioPlayer {
     await _methodChannel.invokeMethod('setCustomMetadata', metadataMap);
   }
 
-  /// Get the playback state stream.
-  Stream<bool> get stateStream {
+  /// A stream indicating the playback state (true if playing).
+  static Stream<bool> get stateStream {
     _stateStream ??= _stateEvents.receiveBroadcastStream().map<bool>(
       (value) => value,
     );
@@ -85,8 +95,8 @@ class RadioPlayer {
     return _stateStream!;
   }
 
-  /// Get the metadata stream.
-  Stream<Metadata> get metadataStream {
+  /// A stream of metadata updates from the radio stream.
+  static Stream<Metadata> get metadataStream {
     _metadataStream ??= _metadataEvents.receiveBroadcastStream().map((value) {
       return Metadata.fromMap(value as Map<dynamic, dynamic>);
     });

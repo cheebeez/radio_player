@@ -2,6 +2,7 @@
 
 * **BREAKING CHANGE**: Improved `setCustomMetadata` to fully support `null` values for `artist`, `title`, and `artworkUrl`.
 * **BREAKING CHANGE**: Moved settings for ICY metadata parsing and online artwork lookup into `setChannel` parameters.
+* **BREAKING CHANGE**: Made the `RadioPlayer` Dart class fully static.
 
 ## 2.0.0
 
