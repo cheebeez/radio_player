@@ -75,11 +75,11 @@ class RadioPlayerService: NSObject {
         streamUrl = url
         defaultArtwork = imageData != nil ? UIImage(data: imageData!) : nil
 
-        // Update properties based on new parameters
+        // Update properties based on new parameters.
         self.parseStreamMetadata = parseStreamMetadata
         self.lookupOnlineArtwork = lookupOnlineArtwork
 
-        // Update Now Playing Info with station title initially
+        // Update Now Playing Info with station title initially.
         var nowPlayingInfo: [String: Any] = [
             MPMediaItemPropertyTitle: streamTitle,
         ]
@@ -88,7 +88,7 @@ class RadioPlayerService: NSObject {
         }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
 
-        //
+        // Create and set the new player item.
         let playerItem = AVPlayerItem(url: URL(string: streamUrl)!)
         player.replaceCurrentItem(with: playerItem)
 
