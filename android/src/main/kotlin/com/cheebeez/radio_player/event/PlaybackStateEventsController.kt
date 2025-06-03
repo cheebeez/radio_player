@@ -22,7 +22,7 @@ class PlaybackStateEventsController : EventChannelController, Player.Listener {
     private var previousStateString: String? = null
 
     // Called when the player's readiness to play or its intention to play changes.
-    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
         updateAndSendPlaybackState()
     }
 
@@ -36,12 +36,12 @@ class PlaybackStateEventsController : EventChannelController, Player.Listener {
         val controller = mediaController ?: return
         if (eventSink == null) return
 
-        val currentPlayWhenReady = controller.playWhenReady
+        val isActuallyPlaying = controller.isPlaying
         val currentPlaybackState = controller.playbackState
 
         val newStateString = when (currentPlaybackState) {
             Player.STATE_BUFFERING -> "buffering"
-            Player.STATE_READY -> if (currentPlayWhenReady) "playing" else "paused"
+            Player.STATE_READY -> if (isActuallyPlaying) "playing" else "paused"
             Player.STATE_IDLE -> "paused" 
             Player.STATE_ENDED -> "paused"
             else -> "unknown"
