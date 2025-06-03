@@ -76,11 +76,11 @@ class RadioPlayer {
   }
 
   /// Sets custom metadata for the current stream.
-  static Future<void> setCustomMetadata(
+  static Future<void> setCustomMetadata({
     String? artist,
     String? title,
     String? artworkUrl,
-  ) async {
+  }) async {
     Map<String, String?> metadataMap = {
       'artist': artist,
       'title': title,
