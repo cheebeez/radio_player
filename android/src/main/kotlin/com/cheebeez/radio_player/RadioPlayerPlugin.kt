@@ -38,7 +38,7 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
     private lateinit var methodChannel: MethodChannel
 
     // Controllers for managing EventChannel communication.
-    private lateinit var stateEventsController: StateEventsController
+    private lateinit var playbackStateEventsController: PlaybackStateEventsController
     private lateinit var metadataEventsController: MetadataEventsController
 
     // Coroutine scope for managing plugin-specific coroutines.
@@ -58,11 +58,11 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
         methodChannel.setMethodCallHandler(this)
 
         // Initialize Event Channel Controllers.
-        stateEventsController = StateEventsController()
+        playbackStateEventsController = PlaybackStateEventsController()
         metadataEventsController = MetadataEventsController()
 
         // Attach Event Channel Controllers to the binary messenger.
-        stateEventsController.attach(flutterPluginBinding.binaryMessenger)
+        playbackStateEventsController.attach(flutterPluginBinding.binaryMessenger)
         metadataEventsController.attach(flutterPluginBinding.binaryMessenger)
     }
 
@@ -127,7 +127,7 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
         methodChannel.setMethodCallHandler(null)
         
         // Detach Event Channel Controllers to clean up their resources.
-        stateEventsController.detach()
+        playbackStateEventsController.detach()
         metadataEventsController.detach()
 
         // Cancel all coroutines started by this plugin.
@@ -171,7 +171,7 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                     mediaController = controller
 
                     // Pass the new controller to EventChannelControllers.
-                    stateEventsController.setMediaController(controller)
+                    playbackStateEventsController.setMediaController(controller)
                     metadataEventsController.setMediaController(controller)
 
                     // Complete the deferred with the new controller.

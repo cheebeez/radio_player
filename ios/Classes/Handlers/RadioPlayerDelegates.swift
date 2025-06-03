@@ -10,8 +10,8 @@
 import Foundation
 
 /// Delegate protocol for radio player state changes.
-protocol RadioPlayerStateDelegate: AnyObject {
-    func radioPlayerDidChangeState(isPlaying: Bool)
+protocol RadioPlayerPlaybackStateDelegate: AnyObject {
+    func radioPlayerDidChangePlaybackState(playbackState: String)
 }
 
 /// Delegate protocol for radio player metadata updates.

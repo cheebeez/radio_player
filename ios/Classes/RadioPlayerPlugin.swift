@@ -23,8 +23,8 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
         registrar.addMethodCallDelegate(instance, channel: channel)
 
         // Setup event channel for player state updates.
-        let stateChannel = FlutterEventChannel(name: "radio_player/stateEvents", binaryMessenger: registrar.messenger())
-        stateChannel.setStreamHandler(StateStreamHandler(playerService: instance.player))
+        let playbackStateChannel = FlutterEventChannel(name: "radio_player/playbackStateEvents", binaryMessenger: registrar.messenger())
+        playbackStateChannel.setStreamHandler(PlaybackStateStreamHandler(playerService: instance.player))
 
         // Setup event channel for metadata updates.
         let metadataChannel = FlutterEventChannel(name: "radio_player/metadataEvents", binaryMessenger: registrar.messenger())

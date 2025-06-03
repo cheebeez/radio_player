@@ -14,45 +14,54 @@ import 'package:radio_player/radio_player.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(RadioPlayerApp());
+  runApp(RadioPlayerExample());
 }
 
-class RadioPlayerApp extends StatefulWidget {
-  const RadioPlayerApp({super.key});
+class RadioPlayerExample extends StatefulWidget {
+  const RadioPlayerExample({super.key});
 
   @override
-  State<RadioPlayerApp> createState() => _RadioPlayerAppState();
+  State<RadioPlayerExample> createState() => _RadioPlayerExampleState();
 }
 
-class _RadioPlayerAppState extends State<RadioPlayerApp> {
-  bool _isPlaying = false;
+class _RadioPlayerExampleState extends State<RadioPlayerExample> {
+  PlaybackState _playbackState = PlaybackState.paused;
   Metadata? _metadata;
 
-  StreamSubscription? _stateSubscription;
+  StreamSubscription? _playbackStateSubscription;
   StreamSubscription? _metadataSubscription;
 
+  /// Initializes the plugin and starts listening to streams.
   @override
   void initState() {
     super.initState();
 
+    // Set the initial radio station.
     RadioPlayer.setStation(
       title: 'Radio Player',
       url: 'http://stream-uk1.radioparadise.com/aac-320',
       logoAssetPath: 'assets/cover.jpg',
     );
 
-    _stateSubscription = RadioPlayer.stateStream.listen((isPlaying) {
-      setState(() => _isPlaying = isPlaying);
+    // Listen to playback state changes.
+    _playbackStateSubscription = RadioPlayer.playbackStateStream.listen((
+      playbackState,
+    ) {
+      _playbackState = playbackState;
+      setState(() {});
     });
 
+    // Listen to metadata changes.
     _metadataSubscription = RadioPlayer.metadataStream.listen((metadata) {
-      setState(() => _metadata = metadata);
+      _metadata = metadata;
+      setState(() {});
     });
   }
 
+  /// Disposes of stream subscriptions.
   @override
   void dispose() {
-    _stateSubscription?.cancel();
+    _playbackStateSubscription?.cancel();
     _metadataSubscription?.cancel();
     super.dispose();
   }
@@ -73,20 +82,48 @@ class _RadioPlayerAppState extends State<RadioPlayerApp> {
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            _isPlaying ? RadioPlayer.pause() : RadioPlayer.play();
-          },
-          tooltip: 'Control button',
-          child: Icon(
-            _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-          ),
-        ),
+        floatingActionButton: PlayButton(playbackState: _playbackState),
       ),
     );
   }
 }
 
+/// A FloatingActionButton that controls playback.
+class PlayButton extends StatelessWidget {
+  const PlayButton({super.key, required this.playbackState});
+
+  final PlaybackState playbackState;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget iconWidget;
+
+    if (playbackState.isBuffering) {
+      iconWidget = SizedBox(
+        width: 24.0,
+        height: 24.0,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          color: Colors.black45,
+        ),
+      );
+    } else if (playbackState.isPlaying) {
+      iconWidget = const Icon(Icons.pause_rounded);
+    } else {
+      iconWidget = const Icon(Icons.play_arrow_rounded);
+    }
+
+    return FloatingActionButton(
+      onPressed: () {
+        if (playbackState.isBuffering) return;
+        playbackState.isPlaying ? RadioPlayer.pause() : RadioPlayer.play();
+      },
+      child: iconWidget,
+    );
+  }
+}
+
+/// Displays the artwork for the current track or a default image.
 class Artwork extends StatelessWidget {
   const Artwork({super.key, required this.data});
 
@@ -108,6 +145,7 @@ class Artwork extends StatelessWidget {
   }
 }
 
+/// Displays the artist and title of the current track.
 class Track extends StatelessWidget {
   const Track({super.key, this.artist, this.title});
 

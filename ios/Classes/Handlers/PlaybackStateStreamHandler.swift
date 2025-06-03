@@ -1,5 +1,5 @@
 /*
- * StateStreamHandler.swift
+ * PlaybackStateStreamHandler.swift
  *
  * Copyright (c) 2020-2025 Ilia Chirkunov <contact@cheebeez.com>
  *
@@ -9,10 +9,10 @@
 
 import Flutter
 
-/// Handles the event stream for player state updates to Flutter.
-class StateStreamHandler: NSObject, FlutterStreamHandler, RadioPlayerStateDelegate {
+/// Handles the event stream for player playback state updates to Flutter.
+class PlaybackStateStreamHandler: NSObject, FlutterStreamHandler, RadioPlayerPlaybackStateDelegate {
     private var eventSink: FlutterEventSink?
-    private var previousState: Bool?
+    private var previousPlaybackState: String?
     private weak var playerService: RadioPlayerService?
 
     /// Initializes the stream handler with a player service instance.
@@ -24,24 +24,24 @@ class StateStreamHandler: NSObject, FlutterStreamHandler, RadioPlayerStateDelega
     /// Called when Flutter starts listening to the event stream.
     func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
         eventSink = events
-        playerService?.stateDelegate = self
+        playerService?.playbackStateDelegate = self
         return nil
     }
 
     /// Relays player state changes from the player service to Flutter.
-    func radioPlayerDidChangeState(isPlaying: Bool) {
-        if previousState != isPlaying {
-            previousState = isPlaying
-            self.eventSink?(isPlaying)
-        }
+    func radioPlayerDidChangePlaybackState(playbackState: String) {
+            if previousPlaybackState != playbackState {
+                previousPlaybackState = playbackState
+                self.eventSink?(playbackState)
+            }
     }
 
     /// Called when Flutter stops listening to the event stream.
     func onCancel(withArguments arguments: Any?) -> FlutterError? {
         eventSink = nil
 
-        if playerService?.stateDelegate === self {
-            playerService?.stateDelegate = nil
+        if playerService?.playbackStateDelegate === self {
+            playerService?.playbackStateDelegate = nil
         }
 
         return nil

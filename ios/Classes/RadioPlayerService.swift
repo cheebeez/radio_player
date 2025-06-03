@@ -18,7 +18,7 @@ class RadioPlayerService: NSObject {
     var defaultArtwork: UIImage?
     private var metadataHash: String? = nil
 
-    weak var stateDelegate: RadioPlayerStateDelegate?
+    weak var playbackStateDelegate: RadioPlayerPlaybackStateDelegate?
     weak var metadataDelegate: RadioPlayerMetadataDelegate?
 
     var parseStreamMetadata: Bool = true
@@ -178,20 +178,24 @@ class RadioPlayerService: NSObject {
         }
 
         let newStatus = AVPlayer.TimeControlStatus(rawValue: newStatusNumber.intValue)
-        var isPlaying = false
-        switch newStatus {
-            case .playing:
-                isPlaying = true
-            case .waitingToPlayAtSpecifiedRate:
-                isPlaying = true
-            case .paused:
-                isPlaying = false
-            case .none:
-                isPlaying = false
-            @unknown default:
-                isPlaying = false
+        var playbackState: String
+
+        if let status = newStatus {
+            switch status {
+                case .playing:
+                    playbackState = "playing"
+                case .waitingToPlayAtSpecifiedRate:
+                    playbackState = "buffering"
+                case .paused:
+                    playbackState = "paused"
+                @unknown default:
+                    playbackState = "unknown"
+            }
+        } else {
+            playbackState = "unknown" 
         }
-        stateDelegate?.radioPlayerDidChangeState(isPlaying: isPlaying)
+
+        playbackStateDelegate?.radioPlayerDidChangePlaybackState(playbackState: playbackState)
     }
 
     /// Handles audio session interruptions (e.g., phone calls).

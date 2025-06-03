@@ -10,17 +10,21 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:radio_player/models/metadata.dart';
+import 'package:radio_player/models/playback_state.dart';
 
 export 'package:radio_player/models/metadata.dart';
+export 'package:radio_player/models/playback_state.dart';
 
 class RadioPlayer {
   RadioPlayer._internal();
 
   static const _methodChannel = MethodChannel('radio_player');
   static const _metadataEvents = EventChannel('radio_player/metadataEvents');
-  static const _stateEvents = EventChannel('radio_player/stateEvents');
+  static const _playbackStateEvents = EventChannel(
+    'radio_player/playbackStateEvents',
+  );
 
-  static Stream<bool>? _stateStream;
+  static Stream<PlaybackState>? _playbackStateStream;
   static Stream<Metadata>? _metadataStream;
 
   /// Sets the radio station with title, URL, and optional artwork.
@@ -86,13 +90,14 @@ class RadioPlayer {
     await _methodChannel.invokeMethod('setCustomMetadata', metadataMap);
   }
 
-  /// A stream indicating the playback state (true if playing).
-  static Stream<bool> get stateStream {
-    _stateStream ??= _stateEvents.receiveBroadcastStream().map<bool>(
-      (value) => value,
-    );
-
-    return _stateStream!;
+  /// A stream indicating the playback state.
+  static Stream<PlaybackState> get playbackStateStream {
+    _playbackStateStream ??= _playbackStateEvents
+        .receiveBroadcastStream()
+        .map<PlaybackState>(
+          (event) => PlaybackState.fromString(event as String),
+        );
+    return _playbackStateStream!;
   }
 
   /// A stream of metadata updates from the radio stream.
