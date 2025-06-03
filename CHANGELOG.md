@@ -1,6 +1,14 @@
+## 2.1.0
+
+* Breaking Change: Improved `setCustomMetadata` to fully support `null` values for `artist`, `title`, and `artworkUrl`.
+* Breaking Change: Moved settings for ICY metadata parsing and online artwork lookup into `setChannel` parameters.
+* Breaking Change: Made the `RadioPlayer` Dart class fully static.
+* Breaking Change: `RadioPlayer.playbackStateStream` now emits `PlaybackState` enum, offering richer states like `buffering`.
+* Added: `RadioPlayer.reset()` to dismiss the media notification and reset player, keeping the service ready.
+
 ## 2.0.0
 
-* Migrate to media3
+* Migrate to Android Media3.
 * Minimum iOS deployment target raised to 15.0.
 
 ## 1.7.0

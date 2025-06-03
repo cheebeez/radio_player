@@ -8,35 +8,46 @@
  */
 
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:radio_player/models/metadata.dart';
+import 'package:radio_player/models/playback_state.dart';
+
+export 'package:radio_player/models/metadata.dart';
+export 'package:radio_player/models/playback_state.dart';
 
 class RadioPlayer {
+  RadioPlayer._internal();
+
   static const _methodChannel = MethodChannel('radio_player');
   static const _metadataEvents = EventChannel('radio_player/metadataEvents');
-  static const _stateEvents = EventChannel('radio_player/stateEvents');
+  static const _playbackStateEvents = EventChannel(
+    'radio_player/playbackStateEvents',
+  );
 
-  Stream<bool>? _stateStream;
-  Stream<List<String>>? _metadataStream;
-  Uint8List? artworkData;
+  static Stream<PlaybackState>? _playbackStateStream;
+  static Stream<Metadata>? _metadataStream;
 
-  /// Set new streaming URL.
-  Future<void> setChannel({
+  /// Sets the radio station with title, URL, and optional artwork.
+  static Future<void> setStation({
     required String title,
     required String url,
-    String? imagePath,
-    //bool useIcyMetadata = true,
-    //bool enableOnlineArtworkLookup = false,
+    String? logoAssetPath,
+    String? logoNetworkUrl,
+    bool parseStreamMetadata = true,
+    bool lookupOnlineArtwork = false,
   }) async {
     Uint8List? imageData;
-    artworkData = null;
 
-    if (imagePath != null) {
-      final byteData =
-          imagePath.startsWith('http')
-              ? await NetworkAssetBundle(Uri.parse(imagePath)).load(imagePath)
-              : await rootBundle.load(imagePath);
-
+    // Attempt to load logo from local asset path if provided.
+    if (logoAssetPath != null) {
+      final byteData = await rootBundle.load(logoAssetPath);
+      imageData = byteData.buffer.asUint8List();
+    }
+    // Else, attempt to load logo from network URL if provided.
+    else if (logoNetworkUrl != null) {
+      final byteData = await NetworkAssetBundle(
+        Uri.parse(logoNetworkUrl),
+      ).load(logoNetworkUrl);
       imageData = byteData.buffer.asUint8List();
     }
 
@@ -44,72 +55,55 @@ class RadioPlayer {
       'title': title,
       'url': url,
       'image_data': imageData,
+      'parseStreamMetadata': parseStreamMetadata,
+      'lookupOnlineArtwork': lookupOnlineArtwork,
     });
   }
 
-  Future<void> play() async {
+  /// Starts or resumes playback.
+  static Future<void> play() async {
     await _methodChannel.invokeMethod('play');
   }
 
-  Future<void> stop() async {
-    await _methodChannel.invokeMethod('stop');
-  }
-
-  Future<void> pause() async {
+  /// Pauses playback.
+  static Future<void> pause() async {
     await _methodChannel.invokeMethod('pause');
   }
 
-  /// Helps avoid conflicts with custom metadata.
-  Future<void> ignoreIcyMetadata([bool ignoreIcy = true]) async {
-    await _methodChannel.invokeMethod('setIgnoreIcyMetadata', ignoreIcy);
+  /// Stops playback, removes notification, readies player for a new station.
+  static Future<void> reset() async {
+    await _methodChannel.invokeMethod('reset');
   }
 
-  /// Parse album covers from iTunes.
-  Future<void> itunesArtworkParser(bool enable) async {
-    await _methodChannel.invokeMethod('setItunesArtworkParsing', enable);
-  }
-
-  /// Set custom metadata.
-  Future<void> setCustomMetadata(List<String> metadata) async {
-    Map<String, String> metadataMap = {
-      'artist': metadata[0],
-      'title': metadata[1],
-      'artworkUrl': metadata[2],
+  /// Sets custom metadata for the current stream.
+  static Future<void> setCustomMetadata({
+    String? artist,
+    String? title,
+    String? artworkUrl,
+  }) async {
+    Map<String, String?> metadataMap = {
+      'artist': artist,
+      'title': title,
+      'artworkUrl': artworkUrl,
     };
 
     await _methodChannel.invokeMethod('setCustomMetadata', metadataMap);
   }
 
-  /// Returns the album cover if it has already been downloaded.
-  Future<Image?> getArtworkImage() async {
-    Image? image;
-
-    if (artworkData != null) {
-      image = Image.memory(artworkData!, key: UniqueKey(), fit: BoxFit.cover);
-    }
-
-    return image;
+  /// A stream indicating the playback state.
+  static Stream<PlaybackState> get playbackStateStream {
+    _playbackStateStream ??= _playbackStateEvents
+        .receiveBroadcastStream()
+        .map<PlaybackState>(
+          (event) => PlaybackState.fromString(event as String),
+        );
+    return _playbackStateStream!;
   }
 
-  /// Get the playback state stream.
-  Stream<bool> get stateStream {
-    _stateStream ??= _stateEvents.receiveBroadcastStream().map<bool>(
-      (value) => value,
-    );
-
-    return _stateStream!;
-  }
-
-  /// Get the metadata stream.
-  Stream<List<String>> get metadataStream {
-    _metadataStream ??= _metadataEvents.receiveBroadcastStream().map((rawMap) {
-      if (rawMap.containsKey('artworkData') && rawMap['artworkData'] != null) {
-        artworkData = rawMap['artworkData'] as Uint8List?;
-      } else {
-        artworkData = null;
-      }
-
-      return [rawMap['artist'], rawMap['title'], rawMap['artworkUrl']];
+  /// A stream of metadata updates from the radio stream.
+  static Stream<Metadata> get metadataStream {
+    _metadataStream ??= _metadataEvents.receiveBroadcastStream().map((value) {
+      return Metadata.fromMap(value as Map<dynamic, dynamic>);
     });
 
     return _metadataStream!;

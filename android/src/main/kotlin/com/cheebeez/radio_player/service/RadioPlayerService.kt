@@ -41,25 +41,19 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
         // Custom Commands
         const val CUSTOM_COMMAND_SET_STATION = "com.cheebeez.radio_player.SET_STATION"
         const val CUSTOM_COMMAND_SET_CUSTOM_METADATA = "com.cheebeez.radio_player.SET_CUSTOM_METADATA"
-        const val CUSTOM_COMMAND_SET_ITUNES_ARTWORK_PARSING = "com.cheebeez.radio_player.SET_ITUNES_ARTWORK_PARSING"
-        const val CUSTOM_COMMAND_SET_IGNORE_ICY = "com.cheebeez.radio_player.SET_IGNORE_ICY"
+        const val CUSTOM_COMMAND_RESET = "com.cheebeez.radio_player.RESET"
     }
 
     var metadataArtwork: ByteArray? = null
-    var ignoreIcy: Boolean = false
-    var itunesArtworkParser: Boolean = false
+    var parseStreamMetadata: Boolean = true
+    var lookupOnlineArtwork: Boolean = false
 
     private var defaultArtwork: ByteArray? = null
     private var mediaSession: MediaSession? = null
     private var defaultTitle = ""
-
-    // Internal state for current track metadata
-    private var currentArtistMeta: String? = null
-    private var currentSongTitleMeta: String? = null
-    private var currentArtworkUrlMeta: String? = null
+    private var metadataHash: String? = null
 
     private lateinit var player: ExoPlayer
-    private lateinit var forwardingPlayer: ForwardingPlayer
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
 
@@ -126,15 +120,21 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
     }
 
     /// Sets the radio station URL and initial metadata.
-    fun setStation(title: String, url: String, artworkBytes: ByteArray? = null) {
+    fun setStation(
+            title: String, 
+            url: String, 
+            artworkBytes: ByteArray? = null,
+            parseStreamMetadata: Boolean,
+            lookupOnlineArtwork: Boolean
+        ) {
         defaultTitle = title
         defaultArtwork = artworkBytes
-
-        // Reset current track metadata when station changes
-        currentArtistMeta = null 
-        currentSongTitleMeta = null
-        currentArtworkUrlMeta = null
         metadataArtwork = null
+        metadataHash = null
+
+        // Update properties based on new parameters
+        this.parseStreamMetadata = parseStreamMetadata
+        this.lookupOnlineArtwork = lookupOnlineArtwork
 
         // Prepare initial MediaMetadata for the new station.
         val mediaMetadataBuilder = MediaMetadata.Builder()
@@ -159,41 +159,39 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
     }
 
     /// Updates the player's metadata with new track information.
-    fun setMetadata(artist: String, songTitle: String, artworkUrl: String?) {
+    fun setMetadata(artist: String?, songTitle: String?, artworkUrl: String?) {
 
-        // Check if metadata has actually changed
-        if (artist == currentArtistMeta && songTitle == currentSongTitleMeta) {
-            return
-        }
-
-        currentArtistMeta = artist
-        currentSongTitleMeta = songTitle
-        currentArtworkUrlMeta = artworkUrl
+        // Check if metadata has actually changed.
+        val newMetadataHash = (artist ?: "_null_") + (songTitle ?: "_null_")
+        if (newMetadataHash == metadataHash) return
+        metadataHash = newMetadataHash
 
         serviceScope.launch {
+            var currentArtworkUrl = artworkUrl
+
             // Optionally parse artwork URL from iTunes.
-            if (itunesArtworkParser && artworkUrl.isNullOrEmpty())
-                currentArtworkUrlMeta = parseArtworkFromItunes(artist, songTitle)
+            if (lookupOnlineArtwork && artworkUrl.isNullOrEmpty())
+                currentArtworkUrl = parseArtworkFromItunes(artist ?: "", songTitle ?: "")
 
             // Download artwork image if URL is available.
-            metadataArtwork = if (currentArtworkUrlMeta != null) downloadImage(currentArtworkUrlMeta) else null
+            metadataArtwork = if (currentArtworkUrl != null) downloadImage(currentArtworkUrl) else null
 
             // Update MediaMetadata for the notification and system UI.
             val currentMediaItem = player.currentMediaItem ?: return@launch
 
             val newMediaMetadataBuilder = MediaMetadata.Builder()
                 .setStation(currentMediaItem!!.mediaMetadata.station)
-                .setArtist(artist.ifEmpty { null }) 
-                .setTitle(songTitle.ifEmpty { defaultTitle })
+                .setArtist(artist) 
+                .setTitle(songTitle)
                 .setMediaType(MediaMetadata.MEDIA_TYPE_RADIO_STATION)
                 .setExtras(Bundle())
 
-            if (!currentArtworkUrlMeta.isNullOrEmpty()) {
+            if (!currentArtworkUrl.isNullOrEmpty()) {
                 try {
-                    val artworkUri = android.net.Uri.parse(currentArtworkUrlMeta)
+                    val artworkUri = android.net.Uri.parse(currentArtworkUrl)
                     newMediaMetadataBuilder.setArtworkUri(artworkUri)
                 } catch (e: Exception) {
-                    Log.w(TAG, "Error parsing artwork URI: $currentArtworkUrlMeta", e)
+                    Log.w(TAG, "Error parsing artwork URI: $currentArtworkUrl", e)
                 }
             }
 
@@ -211,6 +209,19 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
         }
     }
 
+    /// Stops playback, removes notification, and fully resets player state for the next station.
+    fun reset() {
+        player.stop()
+        player.clearMediaItems()
+
+        defaultTitle = ""
+        defaultArtwork = null
+        metadataArtwork = null
+        metadataHash = null
+
+        stopForeground(STOP_FOREGROUND_REMOVE)
+    }
+
     /// Handles player errors.
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
@@ -221,21 +232,24 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
     override fun onMetadata(rawMetadata: Metadata) {
         super.onMetadata(rawMetadata)
 
-        if (ignoreIcy || rawMetadata[0] !is IcyInfo) return
-    
-        val icyInfo: IcyInfo = rawMetadata[0] as IcyInfo
-        val streamTitle: String = icyInfo.title ?: return
-        if (streamTitle.length == 0) return
+        if (!parseStreamMetadata || rawMetadata[0] !is IcyInfo) return
 
-        var artist = ""
-        var songTitle = streamTitle.trim()
+        val icyInfo: IcyInfo = rawMetadata[0] as IcyInfo
+        val streamTitle: String = icyInfo.title?.trim() ?: return
+        if (streamTitle.isEmpty()) return
+
+        var artist: String? = null
+        var songTitle: String? = null
         val artworkUrlFromIcy: String? = icyInfo.url?.takeIf { it.isNotBlank() }
 
         // Check if songTitle is in "Artist - Title" format
         val parts = streamTitle.split(" - ", limit = 2)
+
         if (parts.size == 2) {
-            artist = parts[0].trim()
-            songTitle = parts[1].trim()
+            artist = parts[0].trim().takeIf { it.isNotEmpty() }
+            songTitle = parts[1].trim().takeIf { it.isNotEmpty() }
+        } else {
+            songTitle = streamTitle.takeIf { it.isNotEmpty() }
         }
  
         setMetadata(artist, songTitle, artworkUrlFromIcy)

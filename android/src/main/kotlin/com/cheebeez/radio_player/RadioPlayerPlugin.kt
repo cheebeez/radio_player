@@ -38,7 +38,7 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
     private lateinit var methodChannel: MethodChannel
 
     // Controllers for managing EventChannel communication.
-    private lateinit var stateEventsController: StateEventsController
+    private lateinit var playbackStateEventsController: PlaybackStateEventsController
     private lateinit var metadataEventsController: MetadataEventsController
 
     // Coroutine scope for managing plugin-specific coroutines.
@@ -58,11 +58,11 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
         methodChannel.setMethodCallHandler(this)
 
         // Initialize Event Channel Controllers.
-        stateEventsController = StateEventsController()
+        playbackStateEventsController = PlaybackStateEventsController()
         metadataEventsController = MetadataEventsController()
 
         // Attach Event Channel Controllers to the binary messenger.
-        stateEventsController.attach(flutterPluginBinding.binaryMessenger)
+        playbackStateEventsController.attach(flutterPluginBinding.binaryMessenger)
         metadataEventsController.attach(flutterPluginBinding.binaryMessenger)
     }
 
@@ -76,11 +76,15 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                     val title = call.argument<String>("title")!!
                     val url = call.argument<String>("url")!!
                     val imageData = call.argument<ByteArray?>("image_data")
+                    val parseStreamMetadata = call.argument<Boolean>("parseStreamMetadata")!! 
+                    val lookupOnlineArtwork = call.argument<Boolean>("lookupOnlineArtwork")!!
 
                     val args = Bundle().apply {
                         putString("title", title)
                         putString("url", url)
                         putByteArray("image_data", imageData)
+                        putBoolean("parseStreamMetadata", parseStreamMetadata)
+                        putBoolean("lookupOnlineArtwork", lookupOnlineArtwork)
                     }
                     controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_STATION, Bundle.EMPTY), args)
                     result.success(null)
@@ -110,16 +114,8 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                     controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_CUSTOM_METADATA, Bundle.EMPTY), args)
                     result.success(null)
                 }
-                "setItunesArtworkParsing" -> {
-                    val enable = call.arguments<Boolean>()!!
-                    val args = Bundle().apply { putBoolean("enable", enable) }
-                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_ITUNES_ARTWORK_PARSING, Bundle()), args)
-                    result.success(null)
-                }
-                "setIgnoreIcyMetadata" -> {
-                    val ignoreIcy = call.arguments<Boolean>()!!
-                    val args = Bundle().apply { putBoolean("ignore_icy", ignoreIcy) }
-                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_IGNORE_ICY, Bundle()), args)
+                "reset" -> {
+                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_RESET, Bundle.EMPTY), Bundle.EMPTY)
                     result.success(null)
                 }
                 else -> {
@@ -135,7 +131,7 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
         methodChannel.setMethodCallHandler(null)
         
         // Detach Event Channel Controllers to clean up their resources.
-        stateEventsController.detach()
+        playbackStateEventsController.detach()
         metadataEventsController.detach()
 
         // Cancel all coroutines started by this plugin.
@@ -179,7 +175,7 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                     mediaController = controller
 
                     // Pass the new controller to EventChannelControllers.
-                    stateEventsController.setMediaController(controller)
+                    playbackStateEventsController.setMediaController(controller)
                     metadataEventsController.setMediaController(controller)
 
                     // Complete the deferred with the new controller.
@@ -203,5 +199,3 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
         return controllerReadyDeferred.await() 
     }
 }
-
-

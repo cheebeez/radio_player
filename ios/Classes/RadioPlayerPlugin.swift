@@ -23,8 +23,8 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
         registrar.addMethodCallDelegate(instance, channel: channel)
 
         // Setup event channel for player state updates.
-        let stateChannel = FlutterEventChannel(name: "radio_player/stateEvents", binaryMessenger: registrar.messenger())
-        stateChannel.setStreamHandler(StateStreamHandler(playerService: instance.player))
+        let playbackStateChannel = FlutterEventChannel(name: "radio_player/playbackStateEvents", binaryMessenger: registrar.messenger())
+        playbackStateChannel.setStreamHandler(PlaybackStateStreamHandler(playerService: instance.player))
 
         // Setup event channel for metadata updates.
         let metadataChannel = FlutterEventChannel(name: "radio_player/metadataEvents", binaryMessenger: registrar.messenger())
@@ -39,33 +39,39 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
                 let title = args["title"] as! String
                 let url = args["url"] as! String
                 let imageData: Data? = (args["image_data"] as? FlutterStandardTypedData)?.data
+                let parseStreamMetadata = args["parseStreamMetadata"] as! Bool
+                let lookupOnlineArtwork = args["lookupOnlineArtwork"] as! Bool
 
-                player.setMediaItem(title: title, url: url, imageData: imageData)
+                player.setStation(
+                    title: title, 
+                    url: url, 
+                    imageData: imageData, 
+                    parseStreamMetadata: parseStreamMetadata, 
+                    lookupOnlineArtwork: lookupOnlineArtwork
+                )
                 result(nil)
+
             case "play":
                 player.play()
                 result(nil)
+
             case "pause":
                 player.pause()
                 result(nil)
-            case "stop":
-                player.stop()
+
+            case "reset":
+                player.reset()
                 result(nil)
+
             case "setCustomMetadata":
                 let args = call.arguments as! [String: String?]
-                let artist = args["artist"] as? String ?? ""
-                let songTitle = args["title"] as? String ?? ""
-                let artworkUrl = args["artworkUrl"] as? String ?? ""
+                let artist = args["artist"] as? String
+                let songTitle = args["title"] as? String
+                let artworkUrl = args["artworkUrl"] as? String
 
                 player.setMetadata(artist: artist, songTitle: songTitle, artworkUrl: artworkUrl)
                 result(nil)
 
-            case "setItunesArtworkParsing":
-                player.itunesArtworkParser = call.arguments as! Bool
-                result(nil)
-            case "setIgnoreIcyMetadata":
-                player.ignoreIcy = call.arguments as! Bool
-                result(nil)
             default:
                 result(FlutterMethodNotImplemented)
         }

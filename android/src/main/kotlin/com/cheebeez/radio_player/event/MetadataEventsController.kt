@@ -29,9 +29,9 @@ class MetadataEventsController : EventChannelController, Player.Listener {
         }
 
         val metadataMap = mapOf(
-            "artist" to (mediaMetadata.artist?.toString() ?: ""),
-            "title" to (mediaMetadata.title?.toString() ?: ""),
-            "artworkUrl" to (mediaMetadata.artworkUri?.toString() ?: ""),
+            "artist" to mediaMetadata.artist?.toString(),
+            "title" to mediaMetadata.title?.toString(),
+            "artworkUrl" to mediaMetadata.artworkUri?.toString(),
             "artworkData" to mediaMetadata.artworkData
         )
         eventSink?.success(metadataMap)
@@ -43,6 +43,10 @@ class MetadataEventsController : EventChannelController, Player.Listener {
         eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
                 eventSink = events
+
+                if (mediaController != null) {
+                    mediaController?.addListener(this@MetadataEventsController)
+                }
             }
 
             override fun onCancel(arguments: Any?) {
@@ -56,8 +60,8 @@ class MetadataEventsController : EventChannelController, Player.Listener {
     override fun setMediaController(controller: MediaController?) {
         this.mediaController?.removeListener(this@MetadataEventsController)
         this.mediaController = controller
-        
-        if (eventSink != null) {
+
+        if (eventSink != null && mediaController != null) {
             this.mediaController?.addListener(this@MetadataEventsController)
         }
     }
@@ -65,8 +69,6 @@ class MetadataEventsController : EventChannelController, Player.Listener {
     /// Detaches the event channel and cleans up resources.
     override fun detach() {
         eventChannel.setStreamHandler(null)
-        mediaController?.removeListener(this@MetadataEventsController)
-        eventSink = null
         mediaController = null
     }
 }
