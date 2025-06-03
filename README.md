@@ -104,6 +104,12 @@ RadioPlayer.playbackStateStream.listen((value) {
 Subscribe to `metadataStream` to receive metadata updates from the stream (artist, title, artwork).
 
 ```dart
+// The Metadata object can contain the following fields:
+//
+// - artist (String?): The artist of the current track.
+// - title (String?): The title of the current track.
+// - artworkUrl (String?): A URL for the track's artwork.
+// - artworkData (Uint8List?): Raw image data for the artwork.
 Metadata? _metadata;
 
 RadioPlayer.metadataStream.listen((value) {
