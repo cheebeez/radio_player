@@ -36,50 +36,98 @@ If necessary, add permissions to play in the background:
 
 ## Usage
 
-To create `RadioPlayer` instance, simply call the constructor.
+All methods in `RadioPlayer` are static, so you don't need to create an instance.
+
+### Setting a Station
+
+Configure the player with your station details. You can provide a logo from local assets or a network URL.
 
 ```dart
-RadioPlayer radioPlayer = RadioPlayer();
-```
+import 'package:radio_player/radio_player.dart';
 
-Configure it with your data.
+RadioPlayer.setStation(
+  // The name of the radio station. This will be displayed by default
+  // in the media notification and lock screen controls.
+  title: "My Awesome Radio",
 
-```dart
-radioPlayer.setChannel(title: TITLE, url: URL, imagePath: IMAGEPATH?);
+  // The direct URL to the audio stream (e.g., MP3, AAC, HLS).
+  // Ensure it's a direct link to the stream, not an intermediate playlist file
+  // if you encounter issues.
+  url: "YOUR_STREAM_URL_HERE",
+
+  // Optional: Path to a local asset for the station logo.
+  logoAssetPath: "assets/images/my_radio_logo.png",
+
+  // Optional: URL to a network image for the station logo.
+  logoNetworkUrl: "https://example.com/logo.png", 
+
+  // Optional: Defaults to true. If true, the plugin will attempt to parse
+  // ICY (Shoutcast/Icecast) metadata from the stream.
+  parseStreamMetadata: true,
+
+  // Optional: Defaults to false. If true, the plugin will attempt to find
+  // artwork on the iTunes Store based on artist and title from stream metadata.
+  lookupOnlineArtwork: false 
+);
 ```
 
 ### Player Controls 
 
+Control playback with these simple methods:
+
 ```dart
-radioPlayer.play();
-radioPlayer.pause();
+RadioPlayer.play();
+RadioPlayer.pause();
 ```
 
-### State Event
+### Listening to Playback State
 
-You can use it to show if player playing or paused.
+Subscribe to `playbackStateStream` to get updates on the player's state.
 
 ```dart
-bool isPlaying = false;
-//...
-radioPlayer.stateStream.listen((value) {
-    setState(() { isPlaying = value; });
+// Possible states for playbackState:
+//
+// - PlaybackState.playing
+// - PlaybackState.paused
+// - PlaybackState.buffering
+// - PlaybackState.unknown
+PlaybackState? playbackState;
+
+RadioPlayer.playbackStateStream.listen((value) {
+    setState(() { playbackState = value; });
 });
 ```
 
-### Metadata Event
+### Listening to Metadata
 
-This Event returns the current metadata.
+Subscribe to `metadataStream` to receive metadata updates from the stream (artist, title, artwork).
 
 ```dart
-List<String>? metadata;
-//...
-radioPlayer.metadataStream.listen((value) {
-    setState(() { metadata = value; });
+Metadata? _metadata;
+
+RadioPlayer.metadataStream.listen((value) {
+    setState(() { _metadata = value; });
 });
 ```
 
-Image from metadata can be retrieved using `getArtworkImage()`
+### Setting Custom Metadata
+
+You can manually set the metadata that will be displayed in the notification and lock screen.
+
+```dart
+RadioPlayer.setCustomMetadata(
+  artist: "Custom Artist Name",
+  title: "Custom Song Title",
+  artworkUrl: "https://example.com/custom_artwork.png" // Optional
+);
+```
+
+To avoid conflicts when managing displayed track information with `setCustomMetadata`, it's highly recommended to disable automatic ICY metadata parsing. This is achieved by setting `parseStreamMetadata: false` in your initial `RadioPlayer.setStation()` call.
+
+### Volume Control
+
+For controlling the device's audio volume, it is currently recommended to use a dedicated plugin.
+You can use the [volume_regulator](https://pub.dev/packages/volume_regulator) plugin (also by this author) to manage system volume.
 
 ## Requirements 
 - iOS: 15.0 or later
