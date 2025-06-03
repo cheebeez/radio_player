@@ -46,28 +46,29 @@ Configure the player with your station details. You can provide a logo from loca
 import 'package:radio_player/radio_player.dart';
 
 RadioPlayer.setStation(
-  // The name of the radio station. This will be displayed by default
-  // in the media notification and lock screen controls.
-  title: "My Awesome Radio",
+    // The name of the radio station. This will be displayed by default
+    // in the media notification and lock screen controls.
+    title: "My Awesome Radio",
 
-  // The direct URL to the audio stream (e.g., MP3, AAC, HLS).
-  // Ensure it's a direct link to the stream, not an intermediate playlist file
-  // if you encounter issues.
-  url: "YOUR_STREAM_URL_HERE",
+    // The direct URL to the audio stream (e.g., MP3, AAC, HLS).
+    // Ensure it's a direct link to the stream, not an intermediate playlist file
+    // if you encounter issues.
+    url: "YOUR_STREAM_URL_HERE",
 
-  // Optional: Path to a local asset for the station logo.
-  logoAssetPath: "assets/images/my_radio_logo.png",
+    // Optional: Path to a local asset for the station logo.
+    logoAssetPath: "assets/images/my_radio_logo.png",
 
-  // Optional: URL to a network image for the station logo.
-  logoNetworkUrl: "https://example.com/logo.png", 
+    // Optional: URL to a network image for the station logo.
+    logoNetworkUrl: "https://example.com/logo.png", 
 
-  // Optional: Defaults to true. If true, the plugin will attempt to parse
-  // ICY (Shoutcast/Icecast) metadata from the stream.
-  parseStreamMetadata: true,
+    // Optional: Defaults to true. If true, the plugin will attempt to parse
+    // ICY (Shoutcast/Icecast) metadata from the stream.
+    parseStreamMetadata: true,
 
-  // Optional: Defaults to false. If true, the plugin will attempt to find
-  // artwork on the iTunes Store based on artist and title from stream metadata.
-  lookupOnlineArtwork: false 
+    // Optional: Defaults to false. If true, the plugin will attempt to find
+    // artwork on the iTunes Store (using artist and title from stream metadata)
+    // only if the stream's own metadata provides no artwork image or URL.
+    lookupOnlineArtwork: false 
 );
 ```
 
@@ -116,9 +117,9 @@ You can manually set the metadata that will be displayed in the notification and
 
 ```dart
 RadioPlayer.setCustomMetadata(
-  artist: "Custom Artist Name",
-  title: "Custom Song Title",
-  artworkUrl: "https://example.com/custom_artwork.png" // Optional
+    artist: "Custom Artist Name",
+    title: "Custom Song Title",
+    artworkUrl: "https://example.com/custom_artwork.png" // Optional
 );
 ```
 
