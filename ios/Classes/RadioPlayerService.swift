@@ -164,10 +164,16 @@ class RadioPlayerService: NSObject {
         player.pause()
     }
 
-    /// Stops playback.
-    func stop() {
+    /// Stops playback, removes notification, and fully resets player state for the next station.
+    func reset() {
         player.pause()
         player.replaceCurrentItem(with: nil)
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+
+        streamTitle = nil
+        streamUrl = nil
+        defaultArtwork = nil
+        metadataHash = nil
     }
 
     /// Observes changes in player properties, like playback state.

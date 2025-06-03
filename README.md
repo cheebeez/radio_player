@@ -81,6 +81,14 @@ RadioPlayer.play();
 RadioPlayer.pause();
 ```
 
+### Resetting Player
+
+To completely stop playback, remove the media notification, and reset the player to an idle state, use `reset()`:
+
+```dart
+RadioPlayer.reset();
+```
+
 ### Listening to Playback State
 
 Subscribe to `playbackStateStream` to get updates on the player's state.

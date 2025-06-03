@@ -65,14 +65,14 @@ class RadioPlayer {
     await _methodChannel.invokeMethod('play');
   }
 
-  /// Stops playback and releases resources.
-  static Future<void> stop() async {
-    await _methodChannel.invokeMethod('stop');
-  }
-
   /// Pauses playback.
   static Future<void> pause() async {
     await _methodChannel.invokeMethod('pause');
+  }
+
+  /// Stops playback, removes notification, readies player for a new station.
+  static Future<void> reset() async {
+    await _methodChannel.invokeMethod('reset');
   }
 
   /// Sets custom metadata for the current stream.

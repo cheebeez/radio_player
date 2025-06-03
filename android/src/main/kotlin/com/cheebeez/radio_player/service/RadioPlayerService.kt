@@ -41,6 +41,7 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
         // Custom Commands
         const val CUSTOM_COMMAND_SET_STATION = "com.cheebeez.radio_player.SET_STATION"
         const val CUSTOM_COMMAND_SET_CUSTOM_METADATA = "com.cheebeez.radio_player.SET_CUSTOM_METADATA"
+        const val CUSTOM_COMMAND_RESET = "com.cheebeez.radio_player.RESET"
     }
 
     var metadataArtwork: ByteArray? = null
@@ -206,6 +207,19 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
 
             player.replaceMediaItem(player.currentMediaItemIndex, updatedMediaItem)
         }
+    }
+
+    /// Stops playback, removes notification, and fully resets player state for the next station.
+    fun reset() {
+        player.stop()
+        player.clearMediaItems()
+
+        defaultTitle = ""
+        defaultArtwork = null
+        metadataArtwork = null
+        metadataHash = null
+
+        stopForeground(STOP_FOREGROUND_REMOVE)
     }
 
     /// Handles player errors.

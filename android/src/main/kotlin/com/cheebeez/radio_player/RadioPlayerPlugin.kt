@@ -114,6 +114,10 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                     controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_CUSTOM_METADATA, Bundle.EMPTY), args)
                     result.success(null)
                 }
+                "reset" -> {
+                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_RESET, Bundle.EMPTY), Bundle.EMPTY)
+                    result.success(null)
+                }
                 else -> {
                     result.notImplemented()
                 }

@@ -59,8 +59,8 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
                 player.pause()
                 result(nil)
 
-            case "stop":
-                player.stop()
+            case "reset":
+                player.reset()
                 result(nil)
 
             case "setCustomMetadata":

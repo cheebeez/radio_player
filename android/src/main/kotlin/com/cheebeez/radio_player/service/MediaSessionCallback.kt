@@ -36,6 +36,7 @@ class MediaSessionCallback(private val radioPlayerService: RadioPlayerService) :
             val customCommands = mutableListOf<SessionCommand>()
             customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_STATION, Bundle.EMPTY))
             customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_CUSTOM_METADATA, Bundle.EMPTY))
+            customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_RESET, Bundle.EMPTY))
 
             // Build the full set of available session commands (default + custom).
             val availableSessionCommandsBuilder = ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
@@ -80,6 +81,11 @@ class MediaSessionCallback(private val radioPlayerService: RadioPlayerService) :
                 val artworkUrl = args.getString("artworkUrl")
 
                 radioPlayerService.setMetadata(artist, title, artworkUrl)
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+
+             RadioPlayerService.CUSTOM_COMMAND_RESET -> { 
+                radioPlayerService.reset()
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
         }
