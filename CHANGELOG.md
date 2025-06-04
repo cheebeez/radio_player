@@ -1,7 +1,7 @@
 ## 2.1.0
 
 * Breaking Change: Improved `setCustomMetadata` to fully support `null` values for `artist`, `title`, and `artworkUrl`.
-* Breaking Change: Moved settings for ICY metadata parsing and online artwork lookup into `setChannel` parameters.
+* Breaking Change: Moved settings for ICY metadata parsing and online artwork lookup into `setStation` parameters.
 * Breaking Change: Made the `RadioPlayer` Dart class fully static.
 * Breaking Change: `RadioPlayer.playbackStateStream` now emits `PlaybackState` enum, offering richer states like `buffering`.
 * Added: `RadioPlayer.reset()` to dismiss the media notification and reset player, keeping the service ready.
