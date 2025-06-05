@@ -1,3 +1,7 @@
+## 2.2.0
+
+* 
+
 ## 2.1.0
 
 * Breaking Change: Improved `setCustomMetadata` to fully support `null` values for `artist`, `title`, and `artworkUrl`.
