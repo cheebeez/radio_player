@@ -30,7 +30,7 @@ class _RadioPlayerExampleState extends State<RadioPlayerExample> {
 
   StreamSubscription? _playbackStateSubscription;
   StreamSubscription? _metadataSubscription;
-  StreamSubscription<String>? _remoteCommandSubscription;
+  StreamSubscription? _remoteCommandSubscription;
 
   /// Initializes the plugin and starts listening to streams.
   @override

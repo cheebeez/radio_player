@@ -11,9 +11,11 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:radio_player/models/metadata.dart';
 import 'package:radio_player/models/playback_state.dart';
+import 'package:radio_player/models/remote_command.dart';
 
 export 'package:radio_player/models/metadata.dart';
 export 'package:radio_player/models/playback_state.dart';
+export 'package:radio_player/models/remote_command.dart';
 
 class RadioPlayer {
   RadioPlayer._internal();
@@ -29,7 +31,7 @@ class RadioPlayer {
 
   static Stream<PlaybackState>? _playbackStateStream;
   static Stream<Metadata>? _metadataStream;
-  static Stream<String>? _remoteCommandStream;
+  static Stream<RemoteCommand>? _remoteCommandStream;
 
   /// Sets the radio station with title, URL, and optional artwork.
   static Future<void> setStation({
@@ -125,9 +127,9 @@ class RadioPlayer {
   }
 
   /// A stream for remote control commands like "nextTrack" or "previousTrack".
-  static Stream<String> get remoteCommandStream {
+  static Stream<RemoteCommand> get remoteCommandStream {
     _remoteCommandStream ??= _remoteCommandEvents.receiveBroadcastStream().map(
-      (event) => event as String,
+      (event) => RemoteCommand.fromString(event as String?),
     );
     return _remoteCommandStream!;
   }

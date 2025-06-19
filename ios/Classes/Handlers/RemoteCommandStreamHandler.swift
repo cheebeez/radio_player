@@ -1,5 +1,5 @@
 /*
- * RadioPlayerDelegates.swift
+ * RemoteCommandStreamHandler.swift
  *
  * Copyright (c) 2020-2025 Ilia Chirkunov <contact@cheebeez.com>
  *
