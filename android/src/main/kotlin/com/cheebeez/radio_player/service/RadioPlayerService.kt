@@ -42,6 +42,7 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
         const val CUSTOM_COMMAND_SET_STATION = "com.cheebeez.radio_player.SET_STATION"
         const val CUSTOM_COMMAND_SET_CUSTOM_METADATA = "com.cheebeez.radio_player.SET_CUSTOM_METADATA"
         const val CUSTOM_COMMAND_RESET = "com.cheebeez.radio_player.RESET"
+        const val CUSTOM_COMMAND_SET_NAVIGATION_CONTROLS = "com.cheebeez.radio_player.SET_NAVIGATION_CONTROLS"
     }
 
     var metadataArtwork: ByteArray? = null
@@ -54,6 +55,8 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
     private var metadataHash: String? = null
 
     private lateinit var player: ExoPlayer
+    private lateinit var customForwardingPlayer: CustomForwardingPlayer
+
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
 
@@ -104,13 +107,15 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
             this.addListener(this@RadioPlayerService)
         }
 
+        customForwardingPlayer = CustomForwardingPlayer(player)
+
         // PendingIntent to launch the app's UI when the notification is clicked.
         val activityIntent = packageManager?.getLaunchIntentForPackage(packageName)?.let {
             PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
 
         // Create MediaSession.
-        mediaSession = MediaSession.Builder(this, CustomForwardingPlayer(player))
+        mediaSession = MediaSession.Builder(this, customForwardingPlayer)
             .setCallback(MediaSessionCallback(this@RadioPlayerService))
             .setId("RadioPlayerSession_${System.currentTimeMillis()}")
             .apply {
@@ -220,6 +225,14 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
         metadataHash = null
 
         stopForeground(STOP_FOREGROUND_REMOVE)
+    }
+
+    /// Sets the visibility of next/previous track controls in the media notification.
+    fun setNavigationControls(showNext: Boolean, showPrevious: Boolean) {
+        if (!::customForwardingPlayer.isInitialized) return
+
+        customForwardingPlayer.seekToNext = showNext
+        customForwardingPlayer.seekToPrevious = showPrevious
     }
 
     /// Handles player errors.

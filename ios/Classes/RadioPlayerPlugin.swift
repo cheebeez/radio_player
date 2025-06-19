@@ -72,6 +72,16 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
                 player.setMetadata(artist: artist, songTitle: songTitle, artworkUrl: artworkUrl)
                 result(nil)
 
+            case "setNavigationControls":
+                guard let args = call.arguments as? [String: Bool],
+                      let showNext = args["showNext"],
+                      let showPrevious = args["showPrevious"] else {
+                    result(nil)
+                    return
+                }
+                player.setNavigationControls(showNext: showNext, showPrevious: showPrevious)
+                result(nil)
+
             default:
                 result(FlutterMethodNotImplemented)
         }

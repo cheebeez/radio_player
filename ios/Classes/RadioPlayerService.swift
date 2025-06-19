@@ -58,6 +58,18 @@ class RadioPlayerService: NSObject {
             return .success
         }
 
+        commandCenter.nextTrackCommand.isEnabled = false
+        commandCenter.nextTrackCommand.addTarget { [weak self] (event) -> MPRemoteCommandHandlerStatus in
+            print("iOS: Next Track Command Tapped")
+            return .success
+        }
+
+        commandCenter.previousTrackCommand.isEnabled = false
+        commandCenter.previousTrackCommand.addTarget { [weak self] (event) -> MPRemoteCommandHandlerStatus in
+            print("iOS: Previous Track Command Tapped")
+            return .success
+        }
+
         // Sets up observers for system notifications like audio interruptions.
         NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, 
                 object: AVAudioSession.sharedInstance())
@@ -151,8 +163,8 @@ class RadioPlayerService: NSObject {
                 title: streamTitle, 
                 url: streamUrl, 
                 imageData: defaultArtwork?.jpegData(compressionQuality: 1.0), 
-                parseStreamMetadata: self.parseStreamMetadata, 
-                lookupOnlineArtwork: self.lookupOnlineArtwork
+                parseStreamMetadata: parseStreamMetadata, 
+                lookupOnlineArtwork: lookupOnlineArtwork
             )
         }
 
@@ -174,6 +186,17 @@ class RadioPlayerService: NSObject {
         streamUrl = nil
         defaultArtwork = nil
         metadataHash = nil
+    }
+
+    /// Updates the visibility of the next and previous track remote command buttons.
+    public func setNavigationControls(showNext: Bool, showPrevious: Bool) {
+        let commandCenter = MPRemoteCommandCenter.shared()
+        commandCenter.nextTrackCommand.isEnabled = showNext
+        commandCenter.previousTrackCommand.isEnabled = showPrevious
+
+        if let currentInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo {
+             MPNowPlayingInfoCenter.default().nowPlayingInfo = currentInfo
+        }
     }
 
     /// Observes changes in player properties, like playback state.
@@ -255,7 +278,7 @@ extension RadioPlayerService: AVPlayerItemMetadataOutputPushDelegate {
             artist = parts[0].nilIfEmpty()
             songTitle = parts[1].nilIfEmpty()
         } else {
-            songTitle = streamTitle.nilIfEmpty() // streamTitle is already nilIfEmpty checked
+            songTitle = streamTitle.nilIfEmpty()
         }
 
         // Update metadata

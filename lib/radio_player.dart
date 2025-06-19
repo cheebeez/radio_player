@@ -90,6 +90,17 @@ class RadioPlayer {
     await _methodChannel.invokeMethod('setCustomMetadata', metadataMap);
   }
 
+  /// Sets the visibility of the next and previous track controls.
+  static Future<void> setNavigationControls({
+    required bool showNextButton,
+    required bool showPreviousButton,
+  }) async {
+    await _methodChannel.invokeMethod('setNavigationControls', {
+      'showNext': showNextButton,
+      'showPrevious': showPreviousButton,
+    });
+  }
+
   /// A stream indicating the playback state.
   static Stream<PlaybackState> get playbackStateStream {
     _playbackStateStream ??= _playbackStateEvents

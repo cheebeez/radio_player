@@ -36,6 +36,11 @@ class _RadioPlayerExampleState extends State<RadioPlayerExample> {
   void initState() {
     super.initState();
 
+    RadioPlayer.setNavigationControls(
+      showNextButton: true,
+      showPreviousButton: true,
+    );
+
     // Set the initial radio station.
     RadioPlayer.setStation(
       title: 'Radio Player',

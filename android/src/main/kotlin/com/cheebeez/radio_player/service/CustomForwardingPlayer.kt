@@ -24,8 +24,6 @@ var seekToPrevious: Boolean = false
     /// Overrides available commands.
     override fun getAvailableCommands(): Player.Commands {
         val builder = super.getAvailableCommands().buildUpon()
-            .remove(Player.COMMAND_SEEK_TO_NEXT)
-            .remove(Player.COMMAND_SEEK_TO_PREVIOUS)
 
         if (seekToNext) {
             builder.add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
@@ -45,8 +43,6 @@ var seekToPrevious: Boolean = false
     /// Checks if a specific command is available.
     override fun isCommandAvailable(command: @Player.Command Int): Boolean {
         return when (command) {
-            Player.COMMAND_SEEK_TO_NEXT -> false
-            Player.COMMAND_SEEK_TO_PREVIOUS -> false
             Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM  -> seekToNext
             Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> seekToPrevious
             else -> super.isCommandAvailable(command)
@@ -55,10 +51,11 @@ var seekToPrevious: Boolean = false
 
     /// Overrides seeking to the next media item.
     override fun seekToNextMediaItem() {
+        Log.d("CustomForwardingPlayer","seekToNextMediaItem")
     }
 
     /// Overrides seeking to the previous media item.
     override fun seekToPreviousMediaItem() {
+        Log.d("CustomForwardingPlayer","seekToPreviousMediaItem")
     }
-
 }
