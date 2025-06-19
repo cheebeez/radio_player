@@ -23,9 +23,13 @@ class RadioPlayer {
   static const _playbackStateEvents = EventChannel(
     'radio_player/playbackStateEvents',
   );
+  static const _remoteCommandEvents = EventChannel(
+    'radio_player/remoteCommandEvents',
+  );
 
   static Stream<PlaybackState>? _playbackStateStream;
   static Stream<Metadata>? _metadataStream;
+  static Stream<String>? _remoteCommandStream;
 
   /// Sets the radio station with title, URL, and optional artwork.
   static Future<void> setStation({
@@ -118,5 +122,13 @@ class RadioPlayer {
     });
 
     return _metadataStream!;
+  }
+
+  /// A stream for remote control commands like "nextTrack" or "previousTrack".
+  static Stream<String> get remoteCommandStream {
+    _remoteCommandStream ??= _remoteCommandEvents.receiveBroadcastStream().map(
+      (event) => event as String,
+    );
+    return _remoteCommandStream!;
   }
 }

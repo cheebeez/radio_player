@@ -60,13 +60,13 @@ class RadioPlayerService: NSObject {
 
         commandCenter.nextTrackCommand.isEnabled = false
         commandCenter.nextTrackCommand.addTarget { [weak self] (event) -> MPRemoteCommandHandlerStatus in
-            print("iOS: Next Track Command Tapped")
+            RemoteCommandStreamHandler.shared?.sendCommand("nextTrack")
             return .success
         }
 
         commandCenter.previousTrackCommand.isEnabled = false
         commandCenter.previousTrackCommand.addTarget { [weak self] (event) -> MPRemoteCommandHandlerStatus in
-            print("iOS: Previous Track Command Tapped")
+            RemoteCommandStreamHandler.shared?.sendCommand("previousTrack")
             return .success
         }
 
