@@ -139,7 +139,7 @@ RadioPlayer.setCustomMetadata(
 
 To avoid conflicts when managing displayed track information with `setCustomMetadata`, it's highly recommended to disable automatic ICY metadata parsing. This is achieved by setting `parseStreamMetadata: false` in your initial `RadioPlayer.setStation()` call.
 
-#### Handling Next/Previous Track Controls
+### Navigation Controls
 
 The plugin allows you to display next and previous track buttons on the lock screen and in the media notification. When a user taps these buttons, your app receives a command to handle the action, such as switching to a different radio station.
 
