@@ -30,11 +30,23 @@ class _RadioPlayerExampleState extends State<RadioPlayerExample> {
 
   StreamSubscription? _playbackStateSubscription;
   StreamSubscription? _metadataSubscription;
+  StreamSubscription? _remoteCommandSubscription;
 
   /// Initializes the plugin and starts listening to streams.
   @override
   void initState() {
     super.initState();
+
+    RadioPlayer.setNavigationControls(
+      showNextButton: true,
+      showPreviousButton: true,
+    );
+
+    _remoteCommandSubscription = RadioPlayer.remoteCommandStream.listen((
+      command,
+    ) {
+      debugPrint('Remote command received: $command');
+    });
 
     // Set the initial radio station.
     RadioPlayer.setStation(
@@ -63,6 +75,7 @@ class _RadioPlayerExampleState extends State<RadioPlayerExample> {
   void dispose() {
     _playbackStateSubscription?.cancel();
     _metadataSubscription?.cancel();
+    _remoteCommandSubscription?.cancel();
     super.dispose();
   }
 

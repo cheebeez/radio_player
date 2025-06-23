@@ -55,5 +55,11 @@
         <string>audio</string>
         <string>processing</string>
     </array>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_dartobservatory._tcp</string>
+    </array>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>This app uses the local network to discover devices and enable development features (e.g., Hot Reload).</string>
 </dict>
 </plist>

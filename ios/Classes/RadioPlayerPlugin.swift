@@ -13,6 +13,7 @@ import UIKit
 /// The main plugin class for handling communication between Flutter and native iOS.
 public class RadioPlayerPlugin: NSObject, FlutterPlugin {
     private lazy var player: RadioPlayerService = RadioPlayerService()
+    private var remoteCommandStreamHandler: RemoteCommandStreamHandler?
 
     /// Registers the plugin with the Flutter engine.
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -29,6 +30,11 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
         // Setup event channel for metadata updates.
         let metadataChannel = FlutterEventChannel(name: "radio_player/metadataEvents", binaryMessenger: registrar.messenger())
         metadataChannel.setStreamHandler(MetadataStreamHandler(playerService: instance.player))
+
+        // Setup event channel for remote command events (e.g., next/previous track).
+        let remoteCommandChannel = FlutterEventChannel(name: "radio_player/remoteCommandEvents", binaryMessenger: registrar.messenger())
+        instance.remoteCommandStreamHandler = RemoteCommandStreamHandler()
+        remoteCommandChannel.setStreamHandler(instance.remoteCommandStreamHandler)
     }
 
     /// Handles method calls received from the Flutter side.
@@ -70,6 +76,16 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
                 let artworkUrl = args["artworkUrl"] as? String
 
                 player.setMetadata(artist: artist, songTitle: songTitle, artworkUrl: artworkUrl)
+                result(nil)
+
+            case "setNavigationControls":
+                guard let args = call.arguments as? [String: Bool],
+                      let showNext = args["showNext"],
+                      let showPrevious = args["showPrevious"] else {
+                    result(nil)
+                    return
+                }
+                player.setNavigationControls(showNext: showNext, showPrevious: showPrevious)
                 result(nil)
 
             default:

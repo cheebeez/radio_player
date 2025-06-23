@@ -58,6 +58,18 @@ class RadioPlayerService: NSObject {
             return .success
         }
 
+        commandCenter.nextTrackCommand.isEnabled = false
+        commandCenter.nextTrackCommand.addTarget { (event) -> MPRemoteCommandHandlerStatus in
+            RemoteCommandStreamHandler.shared?.sendCommand("nextTrack")
+            return .success
+        }
+
+        commandCenter.previousTrackCommand.isEnabled = false
+        commandCenter.previousTrackCommand.addTarget { (event) -> MPRemoteCommandHandlerStatus in
+            RemoteCommandStreamHandler.shared?.sendCommand("previousTrack")
+            return .success
+        }
+
         // Sets up observers for system notifications like audio interruptions.
         NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, 
                 object: AVAudioSession.sharedInstance())
@@ -81,7 +93,7 @@ class RadioPlayerService: NSObject {
 
         // Update Now Playing Info with station title initially.
         var nowPlayingInfo: [String: Any] = [
-            MPMediaItemPropertyTitle: streamTitle,
+            MPMediaItemPropertyTitle: streamTitle!,
         ]
         if let art = defaultArtwork {
             nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: art.size, requestHandler: { _ in art })
@@ -121,10 +133,9 @@ class RadioPlayerService: NSObject {
             loadedArtwork = loadedArtwork ?? defaultArtwork
 
             // Update the now playing info.
-            var nowPlayingInfo: [String: Any] = [
-                MPMediaItemPropertyArtist: currentArtist,
-                MPMediaItemPropertyTitle: currentSongTitle
-            ]
+            var nowPlayingInfo: [String: Any] = [:]
+            nowPlayingInfo[MPMediaItemPropertyArtist] = currentArtist
+            nowPlayingInfo[MPMediaItemPropertyTitle] = currentSongTitle
 
             if let image = loadedArtwork {
                 let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
@@ -151,8 +162,8 @@ class RadioPlayerService: NSObject {
                 title: streamTitle, 
                 url: streamUrl, 
                 imageData: defaultArtwork?.jpegData(compressionQuality: 1.0), 
-                parseStreamMetadata: self.parseStreamMetadata, 
-                lookupOnlineArtwork: self.lookupOnlineArtwork
+                parseStreamMetadata: parseStreamMetadata, 
+                lookupOnlineArtwork: lookupOnlineArtwork
             )
         }
 
@@ -174,6 +185,17 @@ class RadioPlayerService: NSObject {
         streamUrl = nil
         defaultArtwork = nil
         metadataHash = nil
+    }
+
+    /// Updates the visibility of the next and previous track remote command buttons.
+    public func setNavigationControls(showNext: Bool, showPrevious: Bool) {
+        let commandCenter = MPRemoteCommandCenter.shared()
+        commandCenter.nextTrackCommand.isEnabled = showNext
+        commandCenter.previousTrackCommand.isEnabled = showPrevious
+
+        if let currentInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo {
+             MPNowPlayingInfoCenter.default().nowPlayingInfo = currentInfo
+        }
     }
 
     /// Observes changes in player properties, like playback state.
@@ -213,17 +235,23 @@ class RadioPlayerService: NSObject {
         }
 
         switch type {
+            // Interruption began, playback is paused by the system.
             case .began:
-                // Interruption began, playback is paused by the system.
                 break
+            
+            // Interruption ended.
             case .ended:
-                // Interruption ended.
                 if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
                     let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
                     if options.contains(.shouldResume) {
                         play()
                     }
                 }
+
+            // Handle any other interruption types, including future ones.
+            @unknown default:
+                print("Unknown AVAudioSession.InterruptionType encountered: \(type.rawValue)")
+                break
         }
     }
 
@@ -239,7 +267,7 @@ extension RadioPlayerService: AVPlayerItemMetadataOutputPushDelegate {
         guard let firstGroup = groups.first, !firstGroup.items.isEmpty else { return }
         let metaItems = firstGroup.items
 
-        guard var streamTitle: String = metaItems.first?.stringValue?.nilIfEmpty() else { return }
+        guard let streamTitle: String = metaItems.first?.stringValue?.nilIfEmpty() else { return }
 
         var artist: String? = nil
         var songTitle: String? = nil
@@ -255,7 +283,7 @@ extension RadioPlayerService: AVPlayerItemMetadataOutputPushDelegate {
             artist = parts[0].nilIfEmpty()
             songTitle = parts[1].nilIfEmpty()
         } else {
-            songTitle = streamTitle.nilIfEmpty() // streamTitle is already nilIfEmpty checked
+            songTitle = streamTitle.nilIfEmpty()
         }
 
         // Update metadata

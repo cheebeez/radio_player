@@ -11,9 +11,11 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:radio_player/models/metadata.dart';
 import 'package:radio_player/models/playback_state.dart';
+import 'package:radio_player/models/remote_command.dart';
 
 export 'package:radio_player/models/metadata.dart';
 export 'package:radio_player/models/playback_state.dart';
+export 'package:radio_player/models/remote_command.dart';
 
 class RadioPlayer {
   RadioPlayer._internal();
@@ -23,9 +25,13 @@ class RadioPlayer {
   static const _playbackStateEvents = EventChannel(
     'radio_player/playbackStateEvents',
   );
+  static const _remoteCommandEvents = EventChannel(
+    'radio_player/remoteCommandEvents',
+  );
 
   static Stream<PlaybackState>? _playbackStateStream;
   static Stream<Metadata>? _metadataStream;
+  static Stream<RemoteCommand>? _remoteCommandStream;
 
   /// Sets the radio station with title, URL, and optional artwork.
   static Future<void> setStation({
@@ -90,6 +96,17 @@ class RadioPlayer {
     await _methodChannel.invokeMethod('setCustomMetadata', metadataMap);
   }
 
+  /// Sets the visibility of the next and previous track controls.
+  static Future<void> setNavigationControls({
+    required bool showNextButton,
+    required bool showPreviousButton,
+  }) async {
+    await _methodChannel.invokeMethod('setNavigationControls', {
+      'showNext': showNextButton,
+      'showPrevious': showPreviousButton,
+    });
+  }
+
   /// A stream indicating the playback state.
   static Stream<PlaybackState> get playbackStateStream {
     _playbackStateStream ??= _playbackStateEvents
@@ -107,5 +124,13 @@ class RadioPlayer {
     });
 
     return _metadataStream!;
+  }
+
+  /// A stream for remote control commands like "nextTrack" or "previousTrack".
+  static Stream<RemoteCommand> get remoteCommandStream {
+    _remoteCommandStream ??= _remoteCommandEvents.receiveBroadcastStream().map(
+      (event) => RemoteCommand.fromString(event as String?),
+    );
+    return _remoteCommandStream!;
   }
 }

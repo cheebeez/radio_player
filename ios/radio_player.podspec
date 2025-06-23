@@ -4,14 +4,14 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'radio_player'
-  s.version          = '0.0.1'
-  s.summary          = 'A new Flutter plugin project.'
+  s.version          = '2.2.0'
+  s.summary          = 'Radio Player'
   s.description      = <<-DESC
-A new Flutter plugin project.
+A Flutter plugin to play streaming audio content with background support and lock screen controls.
                        DESC
-  s.homepage         = 'http://example.com'
-  s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.homepage         = 'https://github.com/cheebeez/radio_player'
+  s.license          = { :type => 'CC-BY-NC-SA-4.0', :file => '../LICENSE' }
+  s.author           = { 'Ilia Chirkunov' => 'contact@cheebeez.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'

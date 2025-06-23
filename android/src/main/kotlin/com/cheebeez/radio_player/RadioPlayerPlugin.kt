@@ -64,6 +64,7 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
         // Attach Event Channel Controllers to the binary messenger.
         playbackStateEventsController.attach(flutterPluginBinding.binaryMessenger)
         metadataEventsController.attach(flutterPluginBinding.binaryMessenger)
+        RemoteCommandEventsController.attach(flutterPluginBinding.binaryMessenger)
     }
 
     /// Handles method calls from the Flutter side.
@@ -89,18 +90,22 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                     controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_STATION, Bundle.EMPTY), args)
                     result.success(null)
                 }
+
                 "play" -> {
                     controller.play()
                     result.success(null)
                 }
+
                 "pause" -> {
                     controller.pause()
                     result.success(null)
                 }
+
                 "stop" -> {
                     controller.stop()
                     result.success(null)
                 }
+
                 "setCustomMetadata" -> {
                     val artist = call.argument<String>("artist")
                     val title = call.argument<String>("title")
@@ -114,10 +119,23 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                     controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_CUSTOM_METADATA, Bundle.EMPTY), args)
                     result.success(null)
                 }
+
+                 "setNavigationControls" -> {
+                    val showNext = call.argument<Boolean>("showNext") ?: false
+                    val showPrevious = call.argument<Boolean>("showPrevious") ?: false
+                    val args = Bundle().apply {
+                        putBoolean("showNext", showNext)
+                        putBoolean("showPrevious", showPrevious)
+                    }
+                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_NAVIGATION_CONTROLS, Bundle.EMPTY), args)
+                    result.success(null)
+                }
+
                 "reset" -> {
                     controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_RESET, Bundle.EMPTY), Bundle.EMPTY)
                     result.success(null)
                 }
+
                 else -> {
                     result.notImplemented()
                 }

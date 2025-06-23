@@ -11,7 +11,7 @@ To use this package, add `radio_player` as a dependency in your `pubspec.yaml` f
 
 ```yaml
 dependencies:
-  radio_player: ^2.1.0
+  radio_player: ^2.2.0
 ```
 
 By default iOS forbids loading from non-https url. To cancel this restriction edit your .plist and add:
@@ -138,6 +138,39 @@ RadioPlayer.setCustomMetadata(
 ```
 
 To avoid conflicts when managing displayed track information with `setCustomMetadata`, it's highly recommended to disable automatic ICY metadata parsing. This is achieved by setting `parseStreamMetadata: false` in your initial `RadioPlayer.setStation()` call.
+
+### Navigation Controls
+
+The plugin allows you to display next and previous track buttons on the lock screen and in the media notification. When a user taps these buttons, your app receives a command to handle the action, such as switching to a different radio station.
+
+The process involves two steps:
+
+1.  **Enable the buttons:** Use `setNavigationControls` to make the buttons visible.
+
+    ```dart
+    RadioPlayer.setNavigationControls(
+        showNextButton: true,
+        showPreviousButton: false,
+    );
+    ```
+
+2.  **Listen for commands:** Enabling the buttons connects them to the `remoteCommandStream`. Your app must subscribe to this stream to react when a user presses a button.
+
+    ```dart
+    // Possible values for the command:
+    //
+    // - RemoteCommand.nextTrack
+    // - RemoteCommand.previousTrack
+    // - RemoteCommand.unknown
+    
+    RadioPlayer.remoteCommandStream.listen((command) {
+        if (command == RemoteCommand.nextTrack) {
+            // Your logic to switch to the next station
+        } else if (command == RemoteCommand.previousTrack) {
+            // Your logic to switch to the previous station
+        }
+    });
+    ```
 
 ### Volume Control
 

@@ -37,18 +37,24 @@ class MediaSessionCallback(private val radioPlayerService: RadioPlayerService) :
             customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_STATION, Bundle.EMPTY))
             customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_CUSTOM_METADATA, Bundle.EMPTY))
             customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_RESET, Bundle.EMPTY))
+            customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_NAVIGATION_CONTROLS, Bundle.EMPTY))
 
             // Build the full set of available session commands (default + custom).
             val availableSessionCommandsBuilder = ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
             customCommands.forEach { availableSessionCommandsBuilder.add(it) }
 
             // Get the player commands supported by the session's underlying player.
-            val availablePlayerCommands = session.player.availableCommands
+            val availablePlayerCommands = Player.Commands.Builder()
+                .addAll(session.player.availableCommands)
+                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .remove(Player.COMMAND_SEEK_TO_NEXT)
+                .remove(Player.COMMAND_SEEK_TO_PREVIOUS)
 
             // Accept the connection, providing the supported session and player commands.
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                 .setAvailableSessionCommands(availableSessionCommandsBuilder.build())
-                .setAvailablePlayerCommands(availablePlayerCommands)
+                .setAvailablePlayerCommands(availablePlayerCommands.build())
                 .build()
         } 
 
@@ -81,6 +87,13 @@ class MediaSessionCallback(private val radioPlayerService: RadioPlayerService) :
                 val artworkUrl = args.getString("artworkUrl")
 
                 radioPlayerService.setMetadata(artist, title, artworkUrl)
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+
+            RadioPlayerService.CUSTOM_COMMAND_SET_NAVIGATION_CONTROLS -> {
+                val showNext = args.getBoolean("showNext")
+                val showPrevious = args.getBoolean("showPrevious")
+                radioPlayerService.setNavigationControls(showNext, showPrevious)
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
 
