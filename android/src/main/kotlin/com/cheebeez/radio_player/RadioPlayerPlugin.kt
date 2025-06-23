@@ -64,6 +64,7 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
         // Attach Event Channel Controllers to the binary messenger.
         playbackStateEventsController.attach(flutterPluginBinding.binaryMessenger)
         metadataEventsController.attach(flutterPluginBinding.binaryMessenger)
+        RemoteCommandEventsController.attach(flutterPluginBinding.binaryMessenger)
     }
 
     /// Handles method calls from the Flutter side.

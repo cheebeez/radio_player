@@ -18,8 +18,8 @@ import androidx.media3.common.MediaItem
 /// A custom ForwardingPlayer that wraps an ExoPlayer instance.
 class CustomForwardingPlayer(player: ExoPlayer) : ForwardingPlayer(player) {
 
-var seekToNext: Boolean = false
-var seekToPrevious: Boolean = false
+    var seekToNext: Boolean = false
+    var seekToPrevious: Boolean = false
 
     /// Overrides available commands.
     override fun getAvailableCommands(): Player.Commands {
@@ -51,11 +51,11 @@ var seekToPrevious: Boolean = false
 
     /// Overrides seeking to the next media item.
     override fun seekToNextMediaItem() {
-        Log.d("CustomForwardingPlayer","seekToNextMediaItem")
+        RemoteCommandEventsController.sendCommand("nextTrack")
     }
 
     /// Overrides seeking to the previous media item.
     override fun seekToPreviousMediaItem() {
-        Log.d("CustomForwardingPlayer","seekToPreviousMediaItem")
+        RemoteCommandEventsController.sendCommand("previousTrack")
     }
 }
