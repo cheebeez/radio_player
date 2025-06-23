@@ -1,3 +1,7 @@
+## 2.3.0
+
+*
+
 ## 2.2.0
 
 * Added next/previous track button controls.
