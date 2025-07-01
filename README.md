@@ -14,7 +14,7 @@ dependencies:
   radio_player: ^2.2.1
 ```
 
-By default iOS forbids loading from non-https url. To cancel this restriction edit your .plist and add:
+By default, iOS blocks requests to non-secure HTTP URLs. To allow them, add the following to your `ios/Runner/Info.plist`:
 
 ```xml
 <key>NSAppTransportSecurity</key>
