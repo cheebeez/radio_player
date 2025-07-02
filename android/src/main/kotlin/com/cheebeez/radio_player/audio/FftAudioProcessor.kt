@@ -99,20 +99,34 @@ class FftAudioProcessor(private val coroutineScope: CoroutineScope) : AudioProce
         }
 
         val bands = 16
-        val processedMagnitudes = IntArray(bands)
-        if (magnitudes.isEmpty()) return
-        val binsPerBand = magnitudes.size / bands
+
+        // Cut off the very low and high frequencies to get a cleaner visualization.
+        val lowFreqTrimPercent = 0.2
+        val highFreqTrimPercent = 0.2
+
+        val startIndex = (magnitudes.size * lowFreqTrimPercent).toInt()
+        val endIndex = (magnitudes.size * (1.0 - highFreqTrimPercent)).toInt()
+
+        val usableBins = endIndex - startIndex
+        if (usableBins <= 0) return
+
+        val binsPerBand = usableBins / bands
         if (binsPerBand == 0) return
+
+        val processedMagnitudes = IntArray(bands)
 
         for (i in 0 until bands) {
             var bandMagnitude = 0.0
-            val startBin = i * binsPerBand
-            val endBin = (i + 1) * binsPerBand
+            val startBin = startIndex + (i * binsPerBand)
+            val endBin = startBin + binsPerBand
+
             for (j in startBin until endBin) {
-                if (j < magnitudes.size) bandMagnitude += magnitudes[j]
+                if (j < magnitudes.size) {
+                    bandMagnitude += magnitudes[j]
+                }
             }
 
-            val avgMagnitude = (bandMagnitude / binsPerBand)
+            val avgMagnitude = if (binsPerBand > 0) (bandMagnitude / binsPerBand) else 0.0
             if (avgMagnitude > 0.0001) {
                 val dbValue = 20 * log10(avgMagnitude)
                 val dynamicRange = 60.0
