@@ -43,7 +43,11 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
         const val CUSTOM_COMMAND_SET_CUSTOM_METADATA = "com.cheebeez.radio_player.SET_CUSTOM_METADATA"
         const val CUSTOM_COMMAND_RESET = "com.cheebeez.radio_player.RESET"
         const val CUSTOM_COMMAND_SET_NAVIGATION_CONTROLS = "com.cheebeez.radio_player.SET_NAVIGATION_CONTROLS"
+        const val CUSTOM_COMMAND_SET_VISUALIZER_ENABLED = "com.cheebeez.radio_player.SET_VISUALIZER_ENABLED"
     }
+
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
 
     var metadataArtwork: ByteArray? = null
     var parseStreamMetadata: Boolean = true
@@ -56,9 +60,7 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
 
     private lateinit var player: ExoPlayer
     private lateinit var customForwardingPlayer: CustomForwardingPlayer
-
-    private val serviceJob = SupervisorJob()
-    private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
+    private lateinit var fftAudioProcessor: FftAudioProcessor
 
     /// Returns the MediaSession instance for controllers.
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -99,8 +101,12 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
             .setContentType(C.CONTENT_TYPE_MUSIC)
             .build()
 
+        // Initialize components for the audio visualizer.
+        fftAudioProcessor = FftAudioProcessor(serviceScope)
+        val renderersFactory = CustomRenderersFactory(this, fftAudioProcessor)
+
         // Create ExoPlayer instance.
-        player = ExoPlayer.Builder(this).build().apply {
+        player = ExoPlayer.Builder(this, renderersFactory).build().apply {
             setAudioAttributes(audioAttributes, true)
             setHandleAudioBecomingNoisy(true)
             setWakeMode(C.WAKE_MODE_NETWORK)
@@ -233,6 +239,11 @@ class RadioPlayerService : MediaSessionService(), Player.Listener {
 
         customForwardingPlayer.seekToNext = showNext
         customForwardingPlayer.seekToPrevious = showPrevious
+    }
+
+    /// Enables or disables the FFT audio processor.
+    fun setVisualizerEnabled(enabled: Boolean) {
+        fftAudioProcessor.isEnabled = enabled
     }
 
     /// Handles player errors.

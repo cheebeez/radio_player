@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:radio_player/radio_player.dart';
 
+import 'dart:math';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(RadioPlayerExample());
@@ -27,26 +29,17 @@ class RadioPlayerExample extends StatefulWidget {
 class _RadioPlayerExampleState extends State<RadioPlayerExample> {
   PlaybackState _playbackState = PlaybackState.paused;
   Metadata? _metadata;
+  List<int> _visualizerData = const [];
 
   StreamSubscription? _playbackStateSubscription;
   StreamSubscription? _metadataSubscription;
   StreamSubscription? _remoteCommandSubscription;
+  StreamSubscription? _visualizerSubscription;
 
   /// Initializes the plugin and starts listening to streams.
   @override
   void initState() {
     super.initState();
-
-    RadioPlayer.setNavigationControls(
-      showNextButton: true,
-      showPreviousButton: true,
-    );
-
-    _remoteCommandSubscription = RadioPlayer.remoteCommandStream.listen((
-      command,
-    ) {
-      debugPrint('Remote command received: $command');
-    });
 
     // Set the initial radio station.
     RadioPlayer.setStation(
@@ -68,6 +61,28 @@ class _RadioPlayerExampleState extends State<RadioPlayerExample> {
       _metadata = metadata;
       setState(() {});
     });
+
+    // Enable the next and previous track buttons.
+    RadioPlayer.setNavigationControls(
+      showNextButton: true,
+      showPreviousButton: true,
+    );
+
+    // Listen to remote control commands.
+    _remoteCommandSubscription = RadioPlayer.remoteCommandStream.listen((
+      command,
+    ) {
+      debugPrint('Remote command received: $command');
+    });
+
+    // Enable the audio visualizer.
+    RadioPlayer.setVisualizerEnabled(true);
+
+    // Listen to the visualizer data stream.
+    _visualizerSubscription = RadioPlayer.visualizerStream.listen((value) {
+      _visualizerData = value;
+      setState(() {});
+    });
   }
 
   /// Disposes of stream subscriptions.
@@ -76,6 +91,9 @@ class _RadioPlayerExampleState extends State<RadioPlayerExample> {
     _playbackStateSubscription?.cancel();
     _metadataSubscription?.cancel();
     _remoteCommandSubscription?.cancel();
+    _visualizerSubscription?.cancel();
+
+    RadioPlayer.reset();
     super.dispose();
   }
 
@@ -92,6 +110,7 @@ class _RadioPlayerExampleState extends State<RadioPlayerExample> {
               SizedBox(height: 20),
               Track(artist: _metadata?.artist, title: _metadata?.title),
               SizedBox(height: 20),
+              AudioVisualizer(visualizerData: _visualizerData),
             ],
           ),
         ),
@@ -182,6 +201,71 @@ class Track extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
       ],
+    );
+  }
+}
+
+class AudioVisualizer extends StatelessWidget {
+  const AudioVisualizer({super.key, required this.visualizerData});
+
+  final List<int> visualizerData;
+  final double maxHeight = 40.0;
+
+  @override
+  Widget build(BuildContext context) {
+    if (visualizerData.length < 15) {
+      return SizedBox(
+        height: maxHeight,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _buildBar(0),
+            const SizedBox(width: 5),
+            _buildBar(0),
+            const SizedBox(width: 5),
+            _buildBar(0),
+          ],
+        ),
+      );
+    }
+
+    final lowValue = visualizerData[4];
+    final midValue = visualizerData[8];
+    final highValue = visualizerData[12];
+
+    final lowHeight = (lowValue / 255.0) * maxHeight;
+    final midHeight = (midValue / 255.0) * maxHeight;
+    final highHeight = (highValue / 255.0) * maxHeight;
+
+    return SizedBox(
+      height: maxHeight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _buildBar(lowHeight),
+          const SizedBox(width: 5),
+          _buildBar(midHeight),
+          const SizedBox(width: 5),
+          _buildBar(highHeight),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBar(double height) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 100),
+      height: max(5, height),
+      width: 7,
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(1),
+          topRight: Radius.circular(1),
+        ),
+      ),
     );
   }
 }

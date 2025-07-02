@@ -65,6 +65,7 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
         playbackStateEventsController.attach(flutterPluginBinding.binaryMessenger)
         metadataEventsController.attach(flutterPluginBinding.binaryMessenger)
         RemoteCommandEventsController.attach(flutterPluginBinding.binaryMessenger)
+        VisualizerEventsController.attach(flutterPluginBinding.binaryMessenger)
     }
 
     /// Handles method calls from the Flutter side.
@@ -131,6 +132,13 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                     result.success(null)
                 }
 
+                "setVisualizerEnabled" -> {
+                    val enabled = call.argument<Boolean>("enabled")!!
+                    val commandArgs = Bundle().apply { putBoolean("enabled", enabled) }
+                    controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_VISUALIZER_ENABLED, Bundle.EMPTY), commandArgs)
+                    result.success(null)
+                }
+
                 "reset" -> {
                     controller.sendCustomCommand(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_RESET, Bundle.EMPTY), Bundle.EMPTY)
                     result.success(null)
@@ -151,6 +159,8 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
         // Detach Event Channel Controllers to clean up their resources.
         playbackStateEventsController.detach()
         metadataEventsController.detach()
+        RemoteCommandEventsController.detach()
+        VisualizerEventsController.detach()
 
         // Cancel all coroutines started by this plugin.
         pluginScope.cancel()

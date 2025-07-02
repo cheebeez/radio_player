@@ -38,6 +38,7 @@ class MediaSessionCallback(private val radioPlayerService: RadioPlayerService) :
             customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_CUSTOM_METADATA, Bundle.EMPTY))
             customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_RESET, Bundle.EMPTY))
             customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_NAVIGATION_CONTROLS, Bundle.EMPTY))
+            customCommands.add(SessionCommand(RadioPlayerService.CUSTOM_COMMAND_SET_VISUALIZER_ENABLED, Bundle.EMPTY))
 
             // Build the full set of available session commands (default + custom).
             val availableSessionCommandsBuilder = ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
@@ -94,6 +95,12 @@ class MediaSessionCallback(private val radioPlayerService: RadioPlayerService) :
                 val showNext = args.getBoolean("showNext")
                 val showPrevious = args.getBoolean("showPrevious")
                 radioPlayerService.setNavigationControls(showNext, showPrevious)
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+
+            RadioPlayerService.CUSTOM_COMMAND_SET_VISUALIZER_ENABLED -> {
+                val enabled = args.getBoolean("enabled")
+                radioPlayerService.setVisualizerEnabled(enabled)
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
 

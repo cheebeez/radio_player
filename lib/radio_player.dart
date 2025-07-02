@@ -28,10 +28,14 @@ class RadioPlayer {
   static const _remoteCommandEvents = EventChannel(
     'radio_player/remoteCommandEvents',
   );
+  static const _visualizerEvents = EventChannel(
+    'radio_player/visualizerEvents',
+  );
 
   static Stream<PlaybackState>? _playbackStateStream;
   static Stream<Metadata>? _metadataStream;
   static Stream<RemoteCommand>? _remoteCommandStream;
+  static Stream<List<int>>? _visualizerStream;
 
   /// Sets the radio station with title, URL, and optional artwork.
   static Future<void> setStation({
@@ -107,6 +111,13 @@ class RadioPlayer {
     });
   }
 
+  /// Enables or disables the audio visualizer.
+  static Future<void> setVisualizerEnabled(bool enabled) async {
+    await _methodChannel.invokeMethod('setVisualizerEnabled', {
+      'enabled': enabled,
+    });
+  }
+
   /// A stream indicating the playback state.
   static Stream<PlaybackState> get playbackStateStream {
     _playbackStateStream ??= _playbackStateEvents
@@ -132,5 +143,13 @@ class RadioPlayer {
       (event) => RemoteCommand.fromString(event as String?),
     );
     return _remoteCommandStream!;
+  }
+
+  /// A stream of frequency band data for the audio visualizer.
+  static Stream<List<int>> get visualizerStream {
+    _visualizerStream ??= _visualizerEvents
+        .receiveBroadcastStream()
+        .map<List<int>>((event) => List<int>.from(event as List));
+    return _visualizerStream!;
   }
 }
