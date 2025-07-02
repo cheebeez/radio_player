@@ -24,16 +24,33 @@ import kotlin.math.log10
 /// Processes a real-time audio stream to generate data for a visualizer.
 class FftAudioProcessor(private val coroutineScope: CoroutineScope) : AudioProcessor {
 
-    private var lastUpdateTime: Long = 0
-    private val updateIntervalMs: Long = 100
+    companion object {
+        // The size of the FFT. Must be a power of 2.
+        private const val FFT_SIZE = 1024
+
+        // The number of frequency bands to generate for the visualizer.
+        private const val BANDS_COUNT = 16
+
+        // The minimum time in milliseconds between sending visualizer updates to Flutter.
+        private const val UPDATE_INTERVAL_MS: Long = 100
+
+        // Percentage of the lowest frequencies to cut off from the visualization.
+        private const val LOW_FREQUENCY_TRIM_PERCENT = 0.2
+
+        // Percentage of the highest frequencies to cut off from the visualization.
+        private const val HIGH_FREQUENCY_TRIM_PERCENT = 0.2
+
+        // The dynamic range in decibels used for scaling the magnitude.
+        private const val DYNAMIC_RANGE_DB = 60.0
+    }
 
     var isEnabled: Boolean = false
     private var sampleRateHz: Int = 0
     private var channelCount: Int = 0
+    private var lastUpdateTime: Long = 0
 
-    private val fftSize = 1024
-    private val fft = DoubleFFT_1D(fftSize.toLong())
-    private val fftInputBuffer = DoubleArray(fftSize)
+    private val fft = DoubleFFT_1D(FFT_SIZE.toLong())
+    private val fftInputBuffer = DoubleArray(FFT_SIZE)
     private var inputBuffer = ByteBuffer.allocate(0).order(ByteOrder.nativeOrder())
     private var outputBuffer: ByteBuffer = AudioProcessor.EMPTY_BUFFER
     private var streamEnded = false
@@ -61,7 +78,8 @@ class FftAudioProcessor(private val coroutineScope: CoroutineScope) : AudioProce
         inputBuffer.put(readOnlyBuffer)
         inputBuffer.flip()
 
-        while (inputBuffer.remaining() >= fftSize * 2) {
+        // Process in chunks of FFT_SIZE. Each sample is 2 bytes (16-bit).
+        while (inputBuffer.remaining() >= FFT_SIZE * 2) {
             processFft()
         }
 
@@ -71,7 +89,7 @@ class FftAudioProcessor(private val coroutineScope: CoroutineScope) : AudioProce
 
     /// Extracts one block of data from the buffer, performs the FFT.
     private fun processFft() {
-        for (i in 0 until fftSize) {
+        for (i in 0 until FFT_SIZE) {
             if (inputBuffer.remaining() < 2) break
             fftInputBuffer[i] = (inputBuffer.getShort() / 32768.0)
         }
@@ -86,36 +104,31 @@ class FftAudioProcessor(private val coroutineScope: CoroutineScope) : AudioProce
     /// Processes the FFT result, converting it into a set of bands for the visualizer.
     private fun processAndSendData(fftOutput: DoubleArray) {
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastUpdateTime < updateIntervalMs) {
+        if (currentTime - lastUpdateTime < UPDATE_INTERVAL_MS) {
             return
         }
         lastUpdateTime = currentTime
 
-        val magnitudes = DoubleArray(fftSize / 2)
-        for (i in 0 until fftSize / 2) {
+        val magnitudes = DoubleArray(FFT_SIZE / 2)
+        for (i in 0 until FFT_SIZE / 2) {
             val real = fftOutput[i * 2]
             val imag = if (i * 2 + 1 < fftOutput.size) fftOutput[i * 2 + 1] else 0.0
             magnitudes[i] = hypot(real, imag)
         }
 
-        val bands = 16
-
         // Cut off the very low and high frequencies to get a cleaner visualization.
-        val lowFreqTrimPercent = 0.2
-        val highFreqTrimPercent = 0.2
-
-        val startIndex = (magnitudes.size * lowFreqTrimPercent).toInt()
-        val endIndex = (magnitudes.size * (1.0 - highFreqTrimPercent)).toInt()
+        val startIndex = (magnitudes.size * LOW_FREQUENCY_TRIM_PERCENT).toInt()
+        val endIndex = (magnitudes.size * (1.0 - HIGH_FREQUENCY_TRIM_PERCENT)).toInt()
 
         val usableBins = endIndex - startIndex
         if (usableBins <= 0) return
 
-        val binsPerBand = usableBins / bands
+        val binsPerBand = usableBins / BANDS_COUNT
         if (binsPerBand == 0) return
 
-        val processedMagnitudes = IntArray(bands)
+        val processedMagnitudes = IntArray(BANDS_COUNT)
 
-        for (i in 0 until bands) {
+        for (i in 0 until BANDS_COUNT) {
             var bandMagnitude = 0.0
             val startBin = startIndex + (i * binsPerBand)
             val endBin = startBin + binsPerBand
@@ -129,8 +142,7 @@ class FftAudioProcessor(private val coroutineScope: CoroutineScope) : AudioProce
             val avgMagnitude = if (binsPerBand > 0) (bandMagnitude / binsPerBand) else 0.0
             if (avgMagnitude > 0.0001) {
                 val dbValue = 20 * log10(avgMagnitude)
-                val dynamicRange = 60.0
-                val scaledValue = ((dbValue + dynamicRange) / dynamicRange) * 255.0
+                val scaledValue = ((dbValue + DYNAMIC_RANGE_DB) / DYNAMIC_RANGE_DB) * 255.0
                 
                 processedMagnitudes[i] = scaledValue.toInt().coerceIn(0, 255)
             } else {
