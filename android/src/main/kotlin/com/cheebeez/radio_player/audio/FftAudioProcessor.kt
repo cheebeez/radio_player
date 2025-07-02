@@ -24,6 +24,9 @@ import kotlin.math.log10
 /// Processes a real-time audio stream to generate data for a visualizer.
 class FftAudioProcessor(private val coroutineScope: CoroutineScope) : AudioProcessor {
 
+    private var lastUpdateTime: Long = 0
+    private val updateIntervalMs: Long = 100
+
     var isEnabled: Boolean = false
     private var sampleRateHz: Int = 0
     private var channelCount: Int = 0
@@ -82,6 +85,12 @@ class FftAudioProcessor(private val coroutineScope: CoroutineScope) : AudioProce
 
     /// Processes the FFT result, converting it into a set of bands for the visualizer.
     private fun processAndSendData(fftOutput: DoubleArray) {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastUpdateTime < updateIntervalMs) {
+            return
+        }
+        lastUpdateTime = currentTime
+
         val magnitudes = DoubleArray(fftSize / 2)
         for (i in 0 until fftSize / 2) {
             val real = fftOutput[i * 2]
@@ -103,13 +112,12 @@ class FftAudioProcessor(private val coroutineScope: CoroutineScope) : AudioProce
                 if (j < magnitudes.size) bandMagnitude += magnitudes[j]
             }
 
-            //val avgMagnitude = (bandMagnitude / binsPerBand)
-            //processedMagnitudes[i] = (avgMagnitude * 250).toInt().coerceIn(0, 255)
-
             val avgMagnitude = (bandMagnitude / binsPerBand)
-            if (avgMagnitude > 0) {
-                val logValue = 20 * log10(avgMagnitude) 
-                val scaledValue = (logValue + 60) * 2.5
+            if (avgMagnitude > 0.0001) {
+                val dbValue = 20 * log10(avgMagnitude)
+                val dynamicRange = 60.0
+                val scaledValue = ((dbValue + dynamicRange) / dynamicRange) * 255.0
+                
                 processedMagnitudes[i] = scaledValue.toInt().coerceIn(0, 255)
             } else {
                 processedMagnitudes[i] = 0
