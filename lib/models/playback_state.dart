@@ -19,7 +19,10 @@ enum PlaybackState {
   buffering,
 
   /// The player is in an unknown state or an error state.
-  unknown;
+  unknown,
+
+  /// The player is stopped.
+  stopped;
 
   static PlaybackState fromString(String? nativeState) {
     switch (nativeState?.toLowerCase()) {
@@ -29,6 +32,8 @@ enum PlaybackState {
         return PlaybackState.paused;
       case 'buffering':
         return PlaybackState.buffering;
+      case 'stopped':
+        return PlaybackState.stopped;
       default:
         return PlaybackState.unknown;
     }
@@ -38,4 +43,5 @@ enum PlaybackState {
   bool get isPaused => this == PlaybackState.paused;
   bool get isBuffering => this == PlaybackState.buffering;
   bool get isUnknown => this == PlaybackState.unknown;
+  bool get isStopped => this == PlaybackState.stopped;
 }
