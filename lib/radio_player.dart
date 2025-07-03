@@ -81,6 +81,11 @@ class RadioPlayer {
     await _methodChannel.invokeMethod('reset');
   }
 
+  /// Stops playback.
+  static Future<void> stop() async {
+    await _methodChannel.invokeMethod('stop');
+  }
+
   /// Sets custom metadata for the current stream.
   static Future<void> setCustomMetadata({
     String? artist,

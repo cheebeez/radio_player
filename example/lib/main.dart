@@ -24,7 +24,7 @@ class RadioPlayerExample extends StatefulWidget {
   State<RadioPlayerExample> createState() => _RadioPlayerExampleState();
 }
 
-class _RadioPlayerExampleState extends State<RadioPlayerExample> {
+class _RadioPlayerExampleState extends State<RadioPlayerExample> with WidgetsBindingObserver {
   PlaybackState _playbackState = PlaybackState.paused;
   Metadata? _metadata;
 
@@ -36,6 +36,7 @@ class _RadioPlayerExampleState extends State<RadioPlayerExample> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     RadioPlayer.setNavigationControls(
       showNextButton: true,
@@ -73,10 +74,18 @@ class _RadioPlayerExampleState extends State<RadioPlayerExample> {
   /// Disposes of stream subscriptions.
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _playbackStateSubscription?.cancel();
     _metadataSubscription?.cancel();
     _remoteCommandSubscription?.cancel();
     super.dispose();
+  }
+
+  @override
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.detached) {
+      await RadioPlayer.reset();
+    }
   }
 
   @override
@@ -129,7 +138,7 @@ class PlayButton extends StatelessWidget {
     return FloatingActionButton(
       onPressed: () {
         if (playbackState.isBuffering) return;
-        playbackState.isPlaying ? RadioPlayer.pause() : RadioPlayer.play();
+        playbackState.isPlaying ? RadioPlayer.stop() : RadioPlayer.play();
       },
       child: iconWidget,
     );
