@@ -7,13 +7,6 @@ A Flutter plugin to play streaming audio content with background support and loc
 
 ## Installation
 
-To use this package, add `radio_player` as a dependency in your `pubspec.yaml` file.
-
-```yaml
-dependencies:
-  radio_player: ^2.3.0
-```
-
 By default, iOS blocks requests to non-secure HTTP URLs. To allow them, add the following to your `ios/Runner/Info.plist`:
 
 ```xml
@@ -46,28 +39,22 @@ Configure the player with your station details. You can provide a logo from loca
 import 'package:radio_player/radio_player.dart';
 
 RadioPlayer.setStation(
-    // The name of the radio station. This will be displayed by default
-    // in the media notification and lock screen controls.
+    // Station name for notifications and lock screen.
     title: "My Awesome Radio",
 
-    // The direct URL to the audio stream (e.g., MP3, AAC, HLS).
-    // Ensure it's a direct link to the stream, not an intermediate playlist file
-    // if you encounter issues.
+    // Direct URL to the audio stream (e.g., MP3, AAC, HLS).
     url: "YOUR_STREAM_URL_HERE",
 
-    // Optional: Path to a local asset for the station logo.
+    // Optional: Local asset path for the station logo.
     logoAssetPath: "assets/images/my_radio_logo.png",
 
-    // Optional: URL to a network image for the station logo.
+    // Optional: Network URL for the station logo.
     logoNetworkUrl: "https://example.com/logo.png", 
 
-    // Optional: Defaults to true. If true, the plugin will attempt to parse
-    // ICY (Shoutcast/Icecast) metadata from the stream.
+    // Optional: Parse ICY metadata from the stream.
     parseStreamMetadata: true,
 
-    // Optional: Defaults to false. If true, the plugin will attempt to find
-    // artwork on the iTunes Store (using artist and title from stream metadata)
-    // only if the stream's own metadata provides no artwork image or URL.
+    // Optional: Find artwork on iTunes by artist and title.
     lookupOnlineArtwork: false 
 );
 ```
