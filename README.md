@@ -7,17 +7,7 @@ A Flutter plugin to play streaming audio content with background support and loc
 
 ## Installation
 
-By default, iOS blocks requests to non-secure HTTP URLs. To allow them, add the following to your `ios/Runner/Info.plist`:
-
-```xml
-<key>NSAppTransportSecurity</key>
-<dict>
-    <key>NSAllowsArbitraryLoads</key>
-    <true/>
-</dict>
-```
-
-If necessary, add permissions to play in the background:
+To enable background playback on iOS, add the following permissions to your `ios/Runner/Info.plist`:
 
 ```xml
 <key>UIBackgroundModes</key>
@@ -25,6 +15,16 @@ If necessary, add permissions to play in the background:
     <string>audio</string>
     <string>processing</string>
 </array>
+```
+
+To allow non-secure HTTP streams on iOS, add the following as well:
+
+```xml
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+</dict>
 ```
 
 ## Usage
@@ -124,7 +124,7 @@ RadioPlayer.setCustomMetadata(
 );
 ```
 
-To avoid conflicts when managing displayed track information with `setCustomMetadata`, it's highly recommended to disable automatic ICY metadata parsing. This is achieved by setting `parseStreamMetadata: false` in your initial `RadioPlayer.setStation()` call.
+To avoid conflicts where stream metadata overwrites your custom values, disable automatic metadata parsing by setting `parseStreamMetadata: false` in the `RadioPlayer.setStation()` call.
 
 ### Navigation Controls
 
